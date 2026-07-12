@@ -1,6 +1,7 @@
 import { Layout } from "@/components/layout/Layout";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { FeaturedDishes } from "@/components/sections/FeaturedDishes";
+import { ServicesPreview } from "@/components/sections/ServicesPreview";
 import { CTASection } from "@/components/sections/CTASection";
 import { useEffect } from "react";
 import { restaurantConfig } from "@/data/mockData";
@@ -14,6 +15,7 @@ export default function HomePage() {
     <Layout>
       <HeroSection />
       <FeaturedDishes />
+      <ServicesPreview />
       <CTASection />
     </Layout>
   );
