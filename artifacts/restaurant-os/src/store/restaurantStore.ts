@@ -5,12 +5,16 @@ import {
   MenuItem,
   Service,
   Testimonial,
+  GalleryImage,
+  Order,
 } from "../types/restaurant";
 import {
   restaurantConfig as initialConfig,
   menuItems as initialMenuItems,
   services as initialServices,
   testimonials as initialTestimonials,
+  galleryImages as initialGalleryImages,
+  mockOrders as initialOrders,
 } from "../data/mockData";
 
 export interface Reservation {
@@ -33,6 +37,8 @@ interface RestaurantStore {
   services: Service[];
   testimonials: Testimonial[];
   reservations: Reservation[];
+  galleryImages: GalleryImage[];
+  orders: Order[];
 
   updateConfig: (config: Partial<RestaurantConfig>) => void;
 
@@ -48,7 +54,15 @@ interface RestaurantStore {
   updateTestimonial: (id: string, testimonial: Partial<Testimonial>) => void;
   deleteTestimonial: (id: string) => void;
 
+  addReservation: (reservation: Omit<Reservation, "id" | "status" | "createdAt">) => void;
   updateReservationStatus: (id: string, status: Reservation["status"]) => void;
+  deleteReservation: (id: string) => void;
+
+  addGalleryImage: (image: Omit<GalleryImage, "id">) => void;
+  updateGalleryImage: (id: string, image: Partial<GalleryImage>) => void;
+  deleteGalleryImage: (id: string) => void;
+
+  updateOrderStatus: (id: string, status: Order["status"]) => void;
 }
 
 const mockReservations: Reservation[] = [
@@ -125,6 +139,8 @@ export const useRestaurantStore = create<RestaurantStore>()(
       services: initialServices,
       testimonials: initialTestimonials,
       reservations: mockReservations,
+      galleryImages: initialGalleryImages,
+      orders: initialOrders,
 
       updateConfig: (partial) =>
         set((s) => ({ config: { ...s.config, ...partial } })),
@@ -170,10 +186,48 @@ export const useRestaurantStore = create<RestaurantStore>()(
           testimonials: s.testimonials.filter((t) => t.id !== id),
         })),
 
+      addReservation: (data) =>
+        set((s) => ({
+          reservations: [
+            ...s.reservations,
+            {
+              ...data,
+              id: generateId("r"),
+              status: "pending" as const,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        })),
       updateReservationStatus: (id, status) =>
         set((s) => ({
           reservations: s.reservations.map((r) =>
             r.id === id ? { ...r, status } : r
+          ),
+        })),
+      deleteReservation: (id) =>
+        set((s) => ({
+          reservations: s.reservations.filter((r) => r.id !== id),
+        })),
+
+      addGalleryImage: (image) =>
+        set((s) => ({
+          galleryImages: [...s.galleryImages, { ...image, id: generateId("g") }],
+        })),
+      updateGalleryImage: (id, partial) =>
+        set((s) => ({
+          galleryImages: s.galleryImages.map((g) =>
+            g.id === id ? { ...g, ...partial } : g
+          ),
+        })),
+      deleteGalleryImage: (id) =>
+        set((s) => ({
+          galleryImages: s.galleryImages.filter((g) => g.id !== id),
+        })),
+
+      updateOrderStatus: (id, status) =>
+        set((s) => ({
+          orders: s.orders.map((o) =>
+            o.id === id ? { ...o, status } : o
           ),
         })),
     }),

@@ -1,34 +1,10 @@
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { motion } from "framer-motion";
-
-const galleryImages = [
-  {
-    src: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80",
-    alt: "Elegant table setting with candlelight"
-  },
-  {
-    src: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80",
-    alt: "Restaurant dining room ambiance"
-  },
-  {
-    src: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
-    alt: "Beautifully plated gourmet dish"
-  },
-  {
-    src: "https://images.unsplash.com/photo-1482049016688-2d3e1da311f5?auto=format&fit=crop&w=800&q=80",
-    alt: "Fine dining plate presentation"
-  },
-  {
-    src: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80",
-    alt: "Restaurant interior with warm lighting"
-  },
-  {
-    src: "https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=800&q=80",
-    alt: "Artisan bread and wine pairing"
-  },
-];
+import { useRestaurantStore } from "@/store/restaurantStore";
 
 export function GalleryGrid() {
+  const { galleryImages } = useRestaurantStore();
+
   return (
     <SectionContainer className="bg-background">
       <div className="flex flex-col items-center mb-12">
@@ -40,7 +16,7 @@ export function GalleryGrid() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-1 md:gap-2">
         {galleryImages.map((img, idx) => (
           <motion.div
-            key={idx}
+            key={img.id}
             initial={{ opacity: 0, scale: 0.97 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}

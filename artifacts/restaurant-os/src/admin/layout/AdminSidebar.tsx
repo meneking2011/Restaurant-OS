@@ -8,15 +8,24 @@ import {
   Settings,
   Flame,
   ExternalLink,
+  ShoppingBag,
+  Images,
+  BarChart3,
+  Building2,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/business", label: "Business Details", icon: Building2 },
   { href: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
+  { href: "/admin/reservations", label: "Reservations", icon: CalendarCheck },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/gallery", label: "Gallery", icon: Images },
   { href: "/admin/services", label: "Services", icon: ConciergeBell },
   { href: "/admin/testimonials", label: "Testimonials", icon: Star },
-  { href: "/admin/reservations", label: "Reservations", icon: CalendarCheck },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -24,7 +33,7 @@ export function AdminSidebar() {
   const [location] = useLocation();
 
   return (
-    <aside className="flex flex-col w-64 min-h-screen bg-[hsl(15,13%,7%)] border-r border-white/10">
+    <aside className="flex flex-col w-64 min-h-screen bg-[hsl(15,13%,7%)] border-r border-white/10 shrink-0">
       <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
         <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary/20">
           <Flame className="w-4 h-4 text-primary" />
@@ -34,12 +43,12 @@ export function AdminSidebar() {
             Restaurant OS
           </p>
           <p className="text-[10px] text-foreground/40 tracking-wide">
-            Website Manager
+            Control Center (RCC)
           </p>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon, exact }) => {
           const isActive = exact
             ? location === href
@@ -62,7 +71,7 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="px-3 pb-4">
+      <div className="px-3 pb-4 border-t border-white/10 pt-3 space-y-0.5">
         <a
           href="/"
           target="_blank"
@@ -71,6 +80,13 @@ export function AdminSidebar() {
         >
           <ExternalLink className="w-3.5 h-3.5" />
           View Live Site
+        </a>
+        <a
+          href="/"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-foreground/40 hover:text-red-400 hover:bg-red-400/5 transition-colors"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          Exit Admin
         </a>
       </div>
     </aside>

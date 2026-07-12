@@ -20,6 +20,10 @@ const AdminMenu = lazy(() => import("@/admin/pages/AdminMenu"));
 const AdminServices = lazy(() => import("@/admin/pages/AdminServices"));
 const AdminTestimonials = lazy(() => import("@/admin/pages/AdminTestimonials"));
 const AdminReservations = lazy(() => import("@/admin/pages/AdminReservations"));
+const AdminOrders = lazy(() => import("@/admin/pages/AdminOrders"));
+const AdminGallery = lazy(() => import("@/admin/pages/AdminGallery"));
+const AdminAnalytics = lazy(() => import("@/admin/pages/AdminAnalytics"));
+const AdminBusinessDetails = lazy(() => import("@/admin/pages/AdminBusinessDetails"));
 const AdminSettings = lazy(() => import("@/admin/pages/AdminSettings"));
 
 const queryClient = new QueryClient();
@@ -46,12 +50,16 @@ function Router() {
         <Route path="/contact" component={ContactPage} />
         <Route path="/checkout" component={CheckoutPage} />
 
-        {/* Admin — Website Manager */}
+        {/* Admin — Restaurant Control Center (RCC) */}
         <Route path="/admin" component={AdminDashboard} />
+        <Route path="/admin/business" component={AdminBusinessDetails} />
         <Route path="/admin/menu" component={AdminMenu} />
+        <Route path="/admin/reservations" component={AdminReservations} />
+        <Route path="/admin/orders" component={AdminOrders} />
+        <Route path="/admin/gallery" component={AdminGallery} />
         <Route path="/admin/services" component={AdminServices} />
         <Route path="/admin/testimonials" component={AdminTestimonials} />
-        <Route path="/admin/reservations" component={AdminReservations} />
+        <Route path="/admin/analytics" component={AdminAnalytics} />
         <Route path="/admin/settings" component={AdminSettings} />
 
         <Route component={NotFound} />

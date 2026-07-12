@@ -47,3 +47,35 @@ export interface CartItem {
   menuItem: MenuItem;
   quantity: number;
 }
+
+export interface GalleryImage {
+  id: string;
+  src: string;
+  alt: string;
+  category?: string;
+}
+
+export interface OrderItem {
+  menuItemId: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface Order {
+  id: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  deliveryAddress: string;
+  items: OrderItem[];
+  paymentMethod: "card" | "bank";
+  status: "new" | "preparing" | "ready" | "completed" | "cancelled";
+  subtotal: number;
+  deliveryFee: number;
+  tax: number;
+  discount?: number;
+  totalAmount: number;
+  specialNotes?: string;
+  orderedAt: string;
+}

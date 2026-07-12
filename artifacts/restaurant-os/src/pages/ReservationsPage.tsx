@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRestaurantStore } from "@/store/restaurantStore";
 
 const reservationSchema = z.object({
   firstName: z.string().min(2, { message: "First name required" }),
@@ -26,6 +27,7 @@ type ReservationFormValues = z.infer<typeof reservationSchema>;
 
 export default function ReservationsPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { addReservation } = useRestaurantStore();
 
   useEffect(() => {
     document.title = "Reservations | Reassurance";
@@ -46,7 +48,15 @@ export default function ReservationsPage() {
   });
 
   const onSubmit = (data: ReservationFormValues) => {
-    console.log("Reservation request:", data);
+    addReservation({
+      name: `${data.firstName} ${data.lastName}`,
+      email: data.email,
+      phone: data.phone,
+      date: data.date,
+      time: data.time,
+      guests: parseInt(data.guests, 10) || 1,
+      notes: data.notes,
+    });
     setIsSubmitted(true);
   };
 
@@ -198,7 +208,7 @@ export default function ReservationsPage() {
                                 {[1,2,3,4,5,6,7,8].map(num => (
                                   <SelectItem key={num} value={num.toString()}>{num} {num === 1 ? 'Person' : 'People'}</SelectItem>
                                 ))}
-                                <SelectItem value="9+">9+ People</SelectItem>
+                                <SelectItem value="9">9+ People</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
