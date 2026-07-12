@@ -31,7 +31,7 @@ export const restaurantConfig: RestaurantConfig = {
   currency: "USD",
   currencySymbol: "$",
   logo: "flame", // Identifier for icon
-  heroImage: "https://picsum.photos/seed/reassuranceHero/1920/1080"
+  heroImage: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1920&q=80"
 };
 
 export const menuItems: MenuItem[] = [
@@ -41,7 +41,7 @@ export const menuItems: MenuItem[] = [
     description: "Served with a rich pomegranate glaze and root vegetables.",
     price: 48,
     category: "mains",
-    image: "https://picsum.photos/seed/m1/400/300",
+    image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=600&q=80",
     available: true,
     tags: ["Gluten-Free"],
     featured: true,
@@ -53,7 +53,7 @@ export const menuItems: MenuItem[] = [
     description: "Line-caught halibut with lemon-herb crust and asparagus.",
     price: 55,
     category: "mains",
-    image: "https://picsum.photos/seed/m2/400/300",
+    image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=600&q=80",
     available: true,
     tags: ["Sustainable Seafood"],
     featured: true,
@@ -65,7 +65,7 @@ export const menuItems: MenuItem[] = [
     description: "Fresh burrata, basil, balsamic reduction, olive oil.",
     price: 26,
     category: "starters",
-    image: "https://picsum.photos/seed/m3/400/300",
+    image: "https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=600&q=80",
     available: true,
     tags: ["Vegetarian", "Farm-to-Table Ethos"],
     featured: false
@@ -76,7 +76,7 @@ export const menuItems: MenuItem[] = [
     description: "Premium cuts served with a truffle wine reduction.",
     price: 110,
     category: "mains",
-    image: "https://picsum.photos/seed/m4/400/300",
+    image: "https://images.unsplash.com/photo-1546833998-877b37c2e5c6?auto=format&fit=crop&w=600&q=80",
     available: true,
     tags: ["Signature"],
     featured: true,
@@ -88,7 +88,7 @@ export const menuItems: MenuItem[] = [
     description: "Rich dark chocolate folded with avocado and raspberry coulis.",
     price: 22,
     category: "desserts",
-    image: "https://picsum.photos/seed/m5/400/300",
+    image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=600&q=80",
     available: true,
     tags: ["Vegan", "Plant-Based Artistry"],
     featured: true
@@ -99,7 +99,7 @@ export const menuItems: MenuItem[] = [
     description: "Arborio rice, porcini broth, shaved parmesan, truffle oil.",
     price: 36,
     category: "mains",
-    image: "https://picsum.photos/seed/m6/400/300",
+    image: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?auto=format&fit=crop&w=600&q=80",
     available: true,
     tags: ["Vegetarian"],
     featured: false
@@ -110,7 +110,7 @@ export const menuItems: MenuItem[] = [
     description: "Bourbon, bitters, orange peel, served under hickory smoke.",
     price: 24,
     category: "drinks",
-    image: "https://picsum.photos/seed/m7/400/300",
+    image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=600&q=80",
     available: true,
     tags: ["Signature"],
     featured: false
@@ -121,7 +121,7 @@ export const menuItems: MenuItem[] = [
     description: "Half dozen seasonal oysters with mignonette.",
     price: 32,
     category: "starters",
-    image: "https://picsum.photos/seed/m8/400/300",
+    image: "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&w=600&q=80",
     available: true,
     tags: ["Raw Bar"],
     featured: false

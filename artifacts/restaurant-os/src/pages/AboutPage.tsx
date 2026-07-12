@@ -34,7 +34,7 @@ export default function AboutPage() {
             transition={{ duration: 0.6 }}
           >
             <ImageComponent 
-              src="https://picsum.photos/seed/chef/600/800" 
+              src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=600&q=80" 
               alt="Executive Chef" 
               aspectRatio="portrait"
               className="rounded-sm" 

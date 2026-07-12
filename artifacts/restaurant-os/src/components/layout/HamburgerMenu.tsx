@@ -14,6 +14,7 @@ interface HamburgerMenuProps {
 }
 
 const navLinks = [
+  { href: "/", label: "HOME" },
   { href: "/menu", label: "MENU" },
   { href: "/about", label: "ABOUT US" },
   { href: "/locate-us", label: "LOCATE US" },
