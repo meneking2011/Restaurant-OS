@@ -16,7 +16,6 @@ export default function AboutPage() {
     <Layout>
       <SectionContainer className="bg-background pt-12 md:pt-20">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-20">
-          <span className="text-primary text-2xl mb-4">✦</span>
           <h1 className="font-serif text-4xl md:text-6xl font-medium tracking-widest uppercase mb-6">
             Our Story
           </h1>

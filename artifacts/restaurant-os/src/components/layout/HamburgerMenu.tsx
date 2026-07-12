@@ -28,7 +28,6 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
   const [location] = useLocation();
   const itemCount = useCartStore(state => state.getItemCount());
 
-  // Prevent scrolling when menu is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -51,7 +50,6 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
           className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col justify-between"
           data-testid="hamburger-menu-overlay"
         >
-          {/* Header */}
           <div className="p-6 md:p-10 flex justify-between items-center">
             <span className="font-serif text-xl md:text-2xl font-bold tracking-widest text-foreground uppercase">
               {restaurantConfig.name}
@@ -66,7 +64,6 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
             </button>
           </div>
 
-          {/* Links */}
           <nav className="flex-1 flex flex-col items-center justify-center gap-6 md:gap-8 overflow-y-auto py-8">
             {navLinks.map((link) => {
               const isActive = location === link.href;
@@ -85,7 +82,7 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                 >
                   <span className="relative z-10">{link.label}</span>
                   {isActive && (
-                    <span className="absolute -left-12 top-1/2 -translate-y-1/2 text-primary opacity-50 hidden md:block">✦</span>
+                    <span className="absolute -left-6 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary hidden md:block" />
                   )}
                   {isOrderNow && itemCount > 0 && (
                     <Badge variant="default" className="text-sm rounded-full w-8 h-8 flex items-center justify-center p-0">
@@ -97,7 +94,6 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
             })}
           </nav>
 
-          {/* Footer area */}
           <div className="p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 relative">
             <div className="flex gap-8">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
@@ -114,10 +110,6 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
             <div className="text-muted-foreground text-sm uppercase tracking-widest hidden md:block">
               {restaurantConfig.tagline}
             </div>
-
-            <span className="text-primary text-4xl absolute bottom-10 right-10 opacity-30 pointer-events-none hidden md:block">
-              ✦
-            </span>
           </div>
         </motion.div>
       )}

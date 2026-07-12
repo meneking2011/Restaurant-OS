@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { useRestaurantStore } from "@/store/restaurantStore";
@@ -6,9 +6,10 @@ import { formatCurrency } from "@/utils/formatCurrency";
 import { ImageComponent } from "@/components/ui/ImageComponent";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/cartStore";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Link } from "wouter";
 
 type Category = 'all' | 'starters' | 'mains' | 'desserts' | 'drinks';
 
@@ -16,10 +17,25 @@ export default function MenuPage() {
   const { menuItems } = useRestaurantStore();
   const [activeCategory, setActiveCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const [addedItemName, setAddedItemName] = useState('');
   const { addItem } = useCartStore();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     document.title = "Menu | Reassurance";
+  }, []);
+
+  const handleAddToCart = (item: typeof menuItems[0]) => {
+    addItem(item);
+    setAddedItemName(item.name);
+    setShowToast(true);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setShowToast(false), 3000);
+  };
+
+  useEffect(() => {
+    return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
   }, []);
 
   const filteredItems = menuItems.filter(item => {
@@ -39,9 +55,32 @@ export default function MenuPage() {
 
   return (
     <Layout>
+      {/* Cart notification toast */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-card border border-primary/40 rounded-sm px-6 py-3 shadow-2xl"
+          >
+            <span className="text-sm text-foreground/80">
+              <span className="text-primary font-semibold">Order added</span>
+              {addedItemName && <span className="text-foreground/50 ml-1">— {addedItemName}</span>}
+            </span>
+            <Link
+              href="/checkout"
+              className="text-sm font-semibold tracking-widest uppercase text-primary border border-primary/40 px-4 py-1.5 hover:bg-primary hover:text-black transition-colors"
+            >
+              Order Now
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <SectionContainer className="bg-background pt-12 md:pt-20">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-16">
-          <span className="text-primary text-2xl mb-4">✦</span>
           <h1 className="font-serif text-4xl md:text-6xl font-medium tracking-widest uppercase mb-6">
             Menu
           </h1>
@@ -51,7 +90,6 @@ export default function MenuPage() {
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
-          {/* Tabs */}
           <div className="flex flex-wrap justify-center gap-2 md:gap-4">
             {categories.map(cat => (
               <button
@@ -69,7 +107,6 @@ export default function MenuPage() {
             ))}
           </div>
 
-          {/* Search */}
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
@@ -83,7 +120,6 @@ export default function MenuPage() {
           </div>
         </div>
 
-        {/* Menu Items */}
         <div className="flex flex-col gap-8 md:gap-12 max-w-4xl mx-auto">
           {filteredItems.map((item, index) => (
             <motion.div
@@ -129,7 +165,7 @@ export default function MenuPage() {
                 <div className="flex justify-end">
                   <Button 
                     variant="outline"
-                    onClick={() => addItem(item)}
+                    onClick={() => handleAddToCart(item)}
                     className="border-primary text-primary hover:bg-primary hover:text-primary-foreground tracking-widest uppercase text-xs rounded-none"
                     data-testid={`button-add-to-cart-${item.id}`}
                   >

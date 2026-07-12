@@ -7,14 +7,13 @@ export function HeroSection() {
   const { config } = useRestaurantStore();
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-      {/* Background with overlay */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40"
         style={{ backgroundImage: `url(${config.heroImage})` }}
       />
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
 
-      <div className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center gap-8">
+      <div className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center gap-8 -mt-24 md:-mt-32">
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -39,16 +38,6 @@ export function HeroSection() {
           </Button>
         </motion.div>
       </div>
-
-      {/* Decorative Sparkle */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
-        transition={{ duration: 1, delay: 1 }}
-        className="absolute bottom-12 left-1/2 -translate-x-1/2 text-primary text-2xl"
-      >
-        ✦
-      </motion.div>
     </section>
   );
 }

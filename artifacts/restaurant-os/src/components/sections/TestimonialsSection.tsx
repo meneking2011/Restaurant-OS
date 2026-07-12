@@ -7,7 +7,6 @@ export function TestimonialsSection() {
   return (
     <SectionContainer className="bg-card">
       <div className="flex flex-col items-center mb-16">
-        <span className="text-primary text-2xl mb-4">✦</span>
         <h2 className="font-serif text-3xl md:text-5xl tracking-widest uppercase text-center">
           What Our Guests Say
         </h2>

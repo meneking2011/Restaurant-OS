@@ -15,7 +15,6 @@ export function ServicesPreview() {
   return (
     <SectionContainer className="bg-card border-t border-border">
       <div className="flex flex-col items-center text-center mb-14">
-        <span className="text-primary text-xl mb-4">✦</span>
         <h2 className="font-serif text-3xl md:text-5xl tracking-widest uppercase mb-4">
           Our Services
         </h2>

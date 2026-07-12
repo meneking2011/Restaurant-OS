@@ -49,7 +49,6 @@ export default function ContactPage() {
     <Layout>
       <SectionContainer className="bg-background pt-12 md:pt-20">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-16">
-          <span className="text-primary text-2xl mb-4">✦</span>
           <h1 className="font-serif text-4xl md:text-6xl font-medium tracking-widest uppercase mb-6">
             Connect With Us
           </h1>
@@ -114,7 +113,9 @@ export default function ContactPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="bg-card p-12 border border-border flex flex-col items-center justify-center text-center h-full min-h-[400px] rounded-sm"
                 >
-                  <span className="text-primary text-5xl mb-6">✦</span>
+                  <div className="w-16 h-16 border-2 border-primary rounded-full flex items-center justify-center mb-6">
+                    <span className="text-primary text-2xl">✓</span>
+                  </div>
                   <h3 className="font-serif text-3xl uppercase tracking-widest mb-4">Message Received</h3>
                   <p className="text-muted-foreground">
                     Thank you for reaching out. A member of our concierge team will respond to your inquiry shortly.

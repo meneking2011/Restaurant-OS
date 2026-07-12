@@ -8,7 +8,6 @@ export function GalleryGrid() {
   return (
     <SectionContainer className="bg-background">
       <div className="flex flex-col items-center mb-12">
-        <span className="text-primary text-xl mb-4">✦</span>
         <h2 className="font-serif text-3xl md:text-5xl tracking-widest uppercase text-center">
           The Experience
         </h2>

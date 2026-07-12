@@ -63,7 +63,6 @@ export default function CheckoutPage() {
     <Layout>
       <SectionContainer className="bg-background pt-12 md:pt-20">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-12">
-          <span className="text-primary text-2xl mb-4">✦</span>
           <h1 className="font-serif text-3xl md:text-5xl font-medium tracking-widest uppercase mb-4">
             Checkout & Order Summary
           </h1>
