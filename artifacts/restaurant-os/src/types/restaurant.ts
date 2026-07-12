@@ -15,16 +15,33 @@ export interface RestaurantConfig {
 }
 
 export interface SiteTheme {
+  // Colors
   primaryHex: string;
   primaryColor: string;
   secondaryHex: string;
   accentHex: string;
+  backgroundHex: string;
+  cardBgHex: string;
+  foregroundHex: string;
+  mutedFgHex: string;
+  linkColorHex: string;
+  navBgHex: string;
+  // Buttons
   buttonStyle: "rounded" | "sharp" | "pill";
+  buttonTextColorHex: string;
+  buttonBorderWidth: number;
+  // Layout
   borderRadius: number;
   shadowIntensity: number;
+  // Typography
   fontHeading: string;
   fontBody: string;
+  // Appearance
   lightMode: boolean;
+  // Hero / Background
+  heroImageUrl: string;
+  heroVideoUrl: string;
+  heroOverlayOpacity: number;
 }
 
 export interface AdminTheme {

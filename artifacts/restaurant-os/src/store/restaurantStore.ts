@@ -37,16 +37,33 @@ export interface Reservation {
 }
 
 const defaultSiteTheme: SiteTheme = {
+  // Colors
   primaryHex: "#d4a853",
   primaryColor: "38 71% 58%",
   secondaryHex: "#1a1614",
   accentHex: "#8b6e3a",
-  buttonStyle: "rounded",
-  borderRadius: 8,
+  backgroundHex: "#0d0b09",
+  cardBgHex: "#141210",
+  foregroundHex: "#e8dcc8",
+  mutedFgHex: "#8a7d6b",
+  linkColorHex: "#d4a853",
+  navBgHex: "#0d0b09",
+  // Buttons
+  buttonStyle: "sharp",
+  buttonTextColorHex: "#0d0b09",
+  buttonBorderWidth: 0,
+  // Layout
+  borderRadius: 0,
   shadowIntensity: 40,
+  // Typography
   fontHeading: "Cormorant Garamond",
   fontBody: "Inter",
+  // Appearance
   lightMode: false,
+  // Hero
+  heroImageUrl: "",
+  heroVideoUrl: "",
+  heroOverlayOpacity: 60,
 };
 
 const defaultAdminTheme: AdminTheme = {
