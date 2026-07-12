@@ -112,7 +112,9 @@ interface RestaurantStore {
   updateGalleryImage: (id: string, image: Partial<GalleryImage>) => void;
   deleteGalleryImage: (id: string) => void;
 
+  addOrder: (order: Omit<Order, "id" | "status" | "orderedAt">) => void;
   updateOrderStatus: (id: string, status: Order["status"]) => void;
+  cancelOrder: (id: string) => void;
 }
 
 const mockReservations: Reservation[] = [
@@ -178,7 +180,24 @@ export const useRestaurantStore = create<RestaurantStore>()(
       updateGalleryImage: (id, partial) => set((s) => ({ galleryImages: s.galleryImages.map((g) => g.id === id ? { ...g, ...partial } : g) })),
       deleteGalleryImage: (id) => set((s) => ({ galleryImages: s.galleryImages.filter((g) => g.id !== id) })),
 
-      updateOrderStatus: (id, status) => set((s) => ({ orders: s.orders.map((o) => o.id === id ? { ...o, status } : o) })),
+      addOrder: (order) => set((s) => {
+        const newOrder: Order = { ...order, id: `ord-${generateId("o")}`, status: "new" as const, orderedAt: new Date().toISOString() };
+        return {
+          orders: [...s.orders, newOrder],
+          activityLog: [
+            { id: generateId("al"), message: "New Order", detail: `Order from ${order.customerName} — ${order.items.length} item(s)`, timestamp: new Date().toISOString() },
+            ...s.activityLog.slice(0, 49),
+          ],
+        };
+      }),
+      updateOrderStatus: (id, status) => set((s) => ({
+        orders: s.orders.map((o) => o.id === id ? { ...o, status } : o),
+        activityLog: status !== "new" ? [
+          { id: generateId("al"), message: "Order Updated", detail: `Order #${id.replace("ord-", "")} status changed to ${status}`, timestamp: new Date().toISOString() },
+          ...s.activityLog.slice(0, 49),
+        ] : s.activityLog,
+      })),
+      cancelOrder: (id) => set((s) => ({ orders: s.orders.map((o) => o.id === id ? { ...o, status: "cancelled" as const } : o) })),
     }),
     { name: "restaurant-os-data" }
   )

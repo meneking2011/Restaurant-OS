@@ -1,11 +1,13 @@
 import { Suspense, lazy } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import NotFound from "@/pages/not-found";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useRestaurantStore } from "@/store/restaurantStore";
+import { Wrench } from "lucide-react";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const MenuPage = lazy(() => import("@/pages/MenuPage"));
@@ -42,7 +44,42 @@ function FallbackLoader() {
   );
 }
 
+function MaintenancePage() {
+  const config = useRestaurantStore((s) => s.config);
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center text-center px-6">
+      <div className="w-20 h-20 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mb-8">
+        <Wrench className="w-8 h-8 text-primary" />
+      </div>
+      <h1 className="font-serif text-4xl md:text-6xl uppercase tracking-widest mb-4 text-foreground">
+        {config.name}
+      </h1>
+      <p className="text-muted-foreground text-lg mb-2 tracking-wide uppercase">
+        Under Maintenance
+      </p>
+      <p className="text-muted-foreground/60 text-sm max-w-md leading-relaxed">
+        We are making improvements to serve you better. Please check back shortly.
+      </p>
+      <p className="text-xs text-muted-foreground/40 mt-10">
+        Restaurant staff:{" "}
+        <a href="/admin" className="text-primary hover:underline">
+          Admin Panel
+        </a>
+      </p>
+    </div>
+  );
+}
+
 function Router() {
+  const [location] = useLocation();
+  const quickControls = useRestaurantStore((s) => s.quickControls);
+
+  // Show maintenance page for all non-admin routes
+  const isAdmin = location.startsWith("/admin");
+  if (quickControls.maintenanceMode && !isAdmin) {
+    return <MaintenancePage />;
+  }
+
   return (
     <Suspense fallback={<FallbackLoader />}>
       <Switch>
