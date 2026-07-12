@@ -15,6 +15,13 @@ const LocateUsPage = lazy(() => import("@/pages/LocateUsPage"));
 const ContactPage = lazy(() => import("@/pages/ContactPage"));
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
 
+const AdminDashboard = lazy(() => import("@/admin/pages/AdminDashboard"));
+const AdminMenu = lazy(() => import("@/admin/pages/AdminMenu"));
+const AdminServices = lazy(() => import("@/admin/pages/AdminServices"));
+const AdminTestimonials = lazy(() => import("@/admin/pages/AdminTestimonials"));
+const AdminReservations = lazy(() => import("@/admin/pages/AdminReservations"));
+const AdminSettings = lazy(() => import("@/admin/pages/AdminSettings"));
+
 const queryClient = new QueryClient();
 
 function FallbackLoader() {
@@ -29,6 +36,7 @@ function Router() {
   return (
     <Suspense fallback={<FallbackLoader />}>
       <Switch>
+        {/* Customer website */}
         <Route path="/" component={HomePage} />
         <Route path="/menu" component={MenuPage} />
         <Route path="/about" component={AboutPage} />
@@ -37,6 +45,15 @@ function Router() {
         <Route path="/locate-us" component={LocateUsPage} />
         <Route path="/contact" component={ContactPage} />
         <Route path="/checkout" component={CheckoutPage} />
+
+        {/* Admin — Website Manager */}
+        <Route path="/admin" component={AdminDashboard} />
+        <Route path="/admin/menu" component={AdminMenu} />
+        <Route path="/admin/services" component={AdminServices} />
+        <Route path="/admin/testimonials" component={AdminTestimonials} />
+        <Route path="/admin/reservations" component={AdminReservations} />
+        <Route path="/admin/settings" component={AdminSettings} />
+
         <Route component={NotFound} />
       </Switch>
     </Suspense>

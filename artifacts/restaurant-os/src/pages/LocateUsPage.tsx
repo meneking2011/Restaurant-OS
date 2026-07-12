@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { SectionContainer } from "@/components/ui/SectionContainer";
-import { restaurantConfig } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function LocateUsPage() {
+  const { config } = useRestaurantStore();
   useEffect(() => {
     document.title = "Locate Us | Reassurance";
   }, []);
@@ -26,9 +27,9 @@ export default function LocateUsPage() {
             <div>
               <h2 className="text-sm font-medium tracking-widest uppercase text-primary mb-4">Our Physical Location</h2>
               <p className="font-serif text-2xl md:text-3xl leading-relaxed text-foreground mb-8">
-                {restaurantConfig.address.street}<br />
-                {restaurantConfig.address.city}, {restaurantConfig.address.state} {restaurantConfig.address.zip}<br />
-                {restaurantConfig.address.country}
+                {config.address.street}<br />
+                {config.address.city}, {config.address.state} {config.address.zip}<br />
+                {config.address.country}
               </p>
               
               <Button 
@@ -43,7 +44,7 @@ export default function LocateUsPage() {
             <div className="border-t border-border pt-8">
               <h2 className="text-sm font-medium tracking-widest uppercase text-primary mb-6">Opening Hours</h2>
               <div className="flex flex-col gap-3">
-                {restaurantConfig.openingHours.map((hours) => (
+                {config.openingHours.map((hours) => (
                   <div key={hours.day} className="flex justify-between items-center text-muted-foreground border-b border-border/30 pb-2 last:border-0">
                     <span className="font-medium">{hours.day}</span>
                     <span>{hours.hours}</span>
@@ -55,13 +56,13 @@ export default function LocateUsPage() {
             <div className="border-t border-border pt-8">
               <h2 className="text-sm font-medium tracking-widest uppercase text-primary mb-6">Quick Contact</h2>
               <div className="flex flex-col gap-4 text-muted-foreground">
-                <a href={`tel:${restaurantConfig.phone}`} className="flex items-center gap-3 hover:text-primary transition-colors">
+                <a href={`tel:${config.phone}`} className="flex items-center gap-3 hover:text-primary transition-colors">
                   <Phone className="w-5 h-5 text-primary" />
-                  {restaurantConfig.phone}
+                  {config.phone}
                 </a>
-                <a href={`mailto:${restaurantConfig.email}`} className="flex items-center gap-3 hover:text-primary transition-colors">
+                <a href={`mailto:${config.email}`} className="flex items-center gap-3 hover:text-primary transition-colors">
                   <Mail className="w-5 h-5 text-primary" />
-                  {restaurantConfig.email}
+                  {config.email}
                 </a>
               </div>
             </div>

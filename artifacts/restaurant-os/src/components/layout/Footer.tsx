@@ -1,8 +1,9 @@
 import { Link } from "wouter";
 import { Flame, MapPin } from "lucide-react";
-import { restaurantConfig } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 
 export function Footer() {
+  const { config } = useRestaurantStore();
   return (
     <footer className="bg-background border-t border-border py-12 md:py-16">
       <div className="container mx-auto px-4 md:px-8 max-w-7xl">
@@ -12,7 +13,7 @@ export function Footer() {
             <Link href="/" className="flex items-center gap-2 group">
               <Flame className="w-6 h-6 text-primary group-hover:text-foreground transition-colors" />
               <span className="font-serif text-xl font-bold tracking-widest uppercase text-foreground">
-                {restaurantConfig.name}
+                {config.name}
               </span>
             </Link>
           </div>
@@ -39,7 +40,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} {restaurantConfig.name}. All rights reserved.
+          &copy; {new Date().getFullYear()} {config.name}. All rights reserved.
         </div>
       </div>
     </footer>

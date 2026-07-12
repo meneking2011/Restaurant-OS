@@ -1,9 +1,10 @@
 import { Link } from "wouter";
 import { SectionContainer } from "@/components/ui/SectionContainer";
-import { menuItems } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 import { motion } from "framer-motion";
 
 export function FeaturedDishes() {
+  const { menuItems } = useRestaurantStore();
   const featured = menuItems.filter(item => item.featured).slice(0, 4);
 
   return (

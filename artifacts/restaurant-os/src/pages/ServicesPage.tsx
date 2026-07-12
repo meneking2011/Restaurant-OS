@@ -2,11 +2,12 @@ import { useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { CTASection } from "@/components/sections/CTASection";
-import { services } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 import { Leaf, GlassWater, Bell } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function ServicesPage() {
+  const { services } = useRestaurantStore();
   useEffect(() => {
     document.title = "Services | Reassurance";
   }, []);

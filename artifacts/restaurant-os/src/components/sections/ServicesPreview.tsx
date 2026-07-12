@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { services } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { Leaf, GlassWater, Bell } from "lucide-react";
 import { motion } from "framer-motion";
@@ -11,6 +11,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 export function ServicesPreview() {
+  const { services } = useRestaurantStore();
   return (
     <SectionContainer className="bg-card border-t border-border">
       <div className="flex flex-col items-center text-center mb-14">

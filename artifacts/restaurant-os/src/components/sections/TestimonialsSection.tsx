@@ -1,8 +1,9 @@
 import { SectionContainer } from "@/components/ui/SectionContainer";
-import { testimonials } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 import { motion } from "framer-motion";
 
 export function TestimonialsSection() {
+  const { testimonials } = useRestaurantStore();
   return (
     <SectionContainer className="bg-card">
       <div className="flex flex-col items-center mb-16">

@@ -4,11 +4,12 @@ import { FeaturedDishes } from "@/components/sections/FeaturedDishes";
 import { ServicesPreview } from "@/components/sections/ServicesPreview";
 import { CTASection } from "@/components/sections/CTASection";
 import { useEffect } from "react";
-import { restaurantConfig } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 
 export default function HomePage() {
+  const { config } = useRestaurantStore();
   useEffect(() => {
-    document.title = `${restaurantConfig.name} | Fine Dining`;
+    document.title = `${config.name} | Fine Dining`;
   }, []);
 
   return (

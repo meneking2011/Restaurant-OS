@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { SectionContainer } from "@/components/ui/SectionContainer";
-import { menuItems } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { ImageComponent } from "@/components/ui/ImageComponent";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 type Category = 'all' | 'starters' | 'mains' | 'desserts' | 'drinks';
 
 export default function MenuPage() {
+  const { menuItems } = useRestaurantStore();
   const [activeCategory, setActiveCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const { addItem } = useCartStore();

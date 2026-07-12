@@ -1,15 +1,16 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { restaurantConfig } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 import { motion } from "framer-motion";
 
 export function HeroSection() {
+  const { config } = useRestaurantStore();
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
       {/* Background with overlay */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40"
-        style={{ backgroundImage: `url(${restaurantConfig.heroImage})` }}
+        style={{ backgroundImage: `url(${config.heroImage})` }}
       />
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
 
@@ -20,7 +21,7 @@ export function HeroSection() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="font-serif text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-bold tracking-widest uppercase text-foreground leading-none"
         >
-          {restaurantConfig.name}
+          {config.name}
         </motion.h1>
 
         <motion.div

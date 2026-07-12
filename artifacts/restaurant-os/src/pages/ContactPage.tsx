@@ -4,7 +4,7 @@ import { SectionContainer } from "@/components/ui/SectionContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { restaurantConfig } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 import { Phone, Mail } from "lucide-react";
 import { SiFacebook, SiInstagram, SiTiktok } from "react-icons/si";
 import { useForm } from "react-hook-form";
@@ -23,6 +23,7 @@ const contactSchema = z.object({
 type ContactFormValues = z.infer<typeof contactSchema>;
 
 export default function ContactPage() {
+  const { config } = useRestaurantStore();
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
@@ -66,23 +67,23 @@ export default function ContactPage() {
             <div>
               <h2 className="text-xl font-serif tracking-widest uppercase text-primary mb-6">Contact Our Support:</h2>
               <div className="flex flex-col gap-6">
-                <a href={`tel:${restaurantConfig.phone}`} className="flex items-center gap-4 text-foreground hover:text-primary transition-colors">
+                <a href={`tel:${config.phone}`} className="flex items-center gap-4 text-foreground hover:text-primary transition-colors">
                   <div className="bg-background p-3 rounded-full border border-border">
                     <Phone className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Phone</div>
-                    <div className="font-medium">{restaurantConfig.phone}</div>
+                    <div className="font-medium">{config.phone}</div>
                   </div>
                 </a>
                 
-                <a href={`mailto:${restaurantConfig.email}`} className="flex items-center gap-4 text-foreground hover:text-primary transition-colors">
+                <a href={`mailto:${config.email}`} className="flex items-center gap-4 text-foreground hover:text-primary transition-colors">
                   <div className="bg-background p-3 rounded-full border border-border">
                     <Mail className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Email</div>
-                    <div className="font-medium">{restaurantConfig.email}</div>
+                    <div className="font-medium">{config.email}</div>
                   </div>
                 </a>
               </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Flame, Menu as MenuIcon } from "lucide-react";
-import { restaurantConfig } from "@/data/mockData";
+import { useRestaurantStore } from "@/store/restaurantStore";
 import { cn } from "@/utils/cn";
 import { HamburgerMenu } from "./HamburgerMenu";
 
@@ -16,6 +16,7 @@ const PAGE_NAMES: Record<string, string> = {
 };
 
 export function Navbar() {
+  const { config } = useRestaurantStore();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [location] = useLocation();
@@ -42,7 +43,7 @@ export function Navbar() {
           <Link href="/" className="flex items-center gap-3 group" data-testid="link-home-logo">
             <Flame className="w-7 h-7 text-primary group-hover:scale-110 transition-transform" data-testid="logo-icon" />
             <span className="font-serif text-xl md:text-2xl font-bold tracking-widest uppercase text-foreground" data-testid="logo-text">
-              {restaurantConfig.name}
+              {config.name}
             </span>
           </Link>
 
