@@ -1,189 +1,490 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { AdminLayout } from "../layout/AdminLayout";
-import { Save } from "lucide-react";
-import { useState } from "react";
+import { Save, User, CreditCard, Bell, Shield, HardDrive, Users, RefreshCw, Palette } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { hexToHsl } from "@/utils/colorUtils";
 
-const settingsSchema = z.object({
-  name: z.string().min(1, "Restaurant name is required"),
-  tagline: z.string().min(1, "Tagline is required"),
-  description: z.string().min(1, "Description is required"),
-  phone: z.string().min(1, "Phone is required"),
+const inputCls = "w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/50";
+
+type Tab = "account" | "general" | "payments" | "notifications" | "security" | "site-theme" | "admin-theme";
+
+const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
+  { key: "account", label: "Account", icon: User },
+  { key: "general", label: "General", icon: Save },
+  { key: "payments", label: "Payments & Checkout", icon: CreditCard },
+  { key: "notifications", label: "Notifications", icon: Bell },
+  { key: "security", label: "Security", icon: Shield },
+  { key: "site-theme", label: "Site Theme", icon: Palette },
+  { key: "admin-theme", label: "Admin Theme", icon: Palette },
+];
+
+const accountSchema = z.object({
+  ownerName: z.string().min(2, "Name is required"),
   email: z.string().email("Valid email required"),
-  heroImage: z.string().url("Must be a valid URL"),
-  street: z.string().min(1, "Street is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  zip: z.string().min(1, "ZIP is required"),
-  country: z.string().min(1, "Country is required"),
-  instagramUrl: z.string().optional(),
-  facebookUrl: z.string().optional(),
-  tiktokUrl: z.string().optional(),
 });
 
-type SettingsForm = z.infer<typeof settingsSchema>;
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1, "Required"),
+  newPassword: z.string().min(8, "At least 8 characters"),
+  confirmPassword: z.string().min(1, "Required"),
+}).refine((d) => d.newPassword === d.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
-    <div>
-      <label className="text-xs text-foreground/60 mb-1 block">{label}</label>
-      {children}
-      {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
+    <button
+      type="button"
+      onClick={onChange}
+      className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0", checked ? "bg-primary" : "bg-white/20")}
+    >
+      <span className={cn("inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow", checked ? "translate-x-4.5" : "translate-x-0.5")} />
+    </button>
+  );
+}
+
+function AccountTab() {
+  const [saved, setSaved] = useState(false);
+  const [pwSaved, setPwSaved] = useState(false);
+  const { register: r1, handleSubmit: h1, formState: { errors: e1 } } = useForm({ resolver: zodResolver(accountSchema), defaultValues: { ownerName: "Alex M.", email: "alex@restaurant.com" } });
+  const { register: r2, handleSubmit: h2, formState: { errors: e2 } } = useForm({ resolver: zodResolver(passwordSchema), defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" } });
+
+  return (
+    <div className="grid sm:grid-cols-2 gap-6">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">1. Owner Profile</h3>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold shrink-0">A</div>
+          <button className="text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors">Change Picture</button>
+        </div>
+        <form onSubmit={h1((d) => { setSaved(true); setTimeout(() => setSaved(false), 2500); })} className="space-y-3">
+          <div>
+            <label className="text-xs text-foreground/50 mb-1 block">Name</label>
+            <input {...r1("ownerName")} className={inputCls} />
+            {e1.ownerName && <p className="text-red-400 text-xs mt-1">{e1.ownerName.message}</p>}
+          </div>
+          <div>
+            <label className="text-xs text-foreground/50 mb-1 block">Email Address</label>
+            <div className="relative">
+              <input {...r1("email")} type="email" className={inputCls + " pr-20"} />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-emerald-400 font-medium">Verified</span>
+            </div>
+            {e1.email && <p className="text-red-400 text-xs mt-1">{e1.email.message}</p>}
+          </div>
+          <button type="submit" className="px-4 py-2 bg-primary text-black text-sm font-medium rounded-lg hover:bg-primary/80 transition-colors">
+            {saved ? "Saved!" : "Save Changes"}
+          </button>
+        </form>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">2. Password Settings</h3>
+        <p className="text-xs text-foreground/40">Ensure a strong password to protect your account.</p>
+        <form onSubmit={h2(() => { setPwSaved(true); setTimeout(() => setPwSaved(false), 2500); })} className="space-y-3">
+          {(["currentPassword", "newPassword", "confirmPassword"] as const).map((field) => (
+            <div key={field}>
+              <label className="text-xs text-foreground/50 mb-1 block capitalize">{field.replace(/([A-Z])/g, " $1")}</label>
+              <input {...r2(field)} type="password" className={inputCls} />
+              {e2[field] && <p className="text-red-400 text-xs mt-1">{(e2[field] as { message?: string }).message}</p>}
+            </div>
+          ))}
+          <button type="submit" className="w-full py-2 bg-white/5 border border-white/10 text-foreground/70 text-sm rounded-lg hover:bg-white/10 transition-colors">
+            {pwSaved ? "Updated!" : "Update Password"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
 
-const inputCls =
-  "w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/50";
-
-export default function AdminSettings() {
+function GeneralTab() {
   const { config, updateConfig } = useRestaurantStore();
   const [saved, setSaved] = useState(false);
-
-  const socials = config.socials.reduce(
-    (acc, s) => ({ ...acc, [`${s.platform.toLowerCase()}Url`]: s.url }),
-    {} as Record<string, string>
-  );
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isDirty },
-  } = useForm<SettingsForm>({
-    resolver: zodResolver(settingsSchema),
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(z.object({
+      name: z.string().min(1),
+      tagline: z.string().min(1),
+      description: z.string().min(1),
+      phone: z.string().min(1),
+      email: z.string().email(),
+      heroImage: z.string().url(),
+      street: z.string().min(1),
+      city: z.string().min(1),
+      state: z.string().min(1),
+      zip: z.string().min(1),
+      country: z.string().min(1),
+    })),
     defaultValues: {
-      name: config.name,
-      tagline: config.tagline,
-      description: config.description,
-      phone: config.phone,
-      email: config.email,
-      heroImage: config.heroImage,
-      street: config.address.street,
-      city: config.address.city,
-      state: config.address.state,
-      zip: config.address.zip,
-      country: config.address.country,
-      instagramUrl: socials.instagramUrl ?? "#",
-      facebookUrl: socials.facebookUrl ?? "#",
-      tiktokUrl: socials.tiktokUrl ?? "#",
+      name: config.name, tagline: config.tagline, description: config.description,
+      phone: config.phone, email: config.email, heroImage: config.heroImage,
+      street: config.address.street, city: config.address.city,
+      state: config.address.state, zip: config.address.zip, country: config.address.country,
     },
   });
 
-  const onSubmit = (data: SettingsForm) => {
-    updateConfig({
-      name: data.name,
-      tagline: data.tagline,
-      description: data.description,
-      phone: data.phone,
-      email: data.email,
-      heroImage: data.heroImage,
-      address: {
-        street: data.street,
-        city: data.city,
-        state: data.state,
-        zip: data.zip,
-        country: data.country,
-      },
-      socials: [
-        { platform: "Instagram", url: data.instagramUrl ?? "#" },
-        { platform: "Facebook", url: data.facebookUrl ?? "#" },
-        { platform: "TikTok", url: data.tiktokUrl ?? "#" },
-      ],
-    });
+  const onSubmit = (d: Record<string, string>) => {
+    updateConfig({ name: d.name, tagline: d.tagline, description: d.description, phone: d.phone, email: d.email, heroImage: d.heroImage, address: { street: d.street, city: d.city, state: d.state, zip: d.zip, country: d.country } });
+    setSaved(true); setTimeout(() => setSaved(false), 2500);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])} className="space-y-5 max-w-2xl">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Restaurant Identity</h3>
+        {[{ key: "name", label: "Restaurant Name" }, { key: "tagline", label: "Tagline" }].map(({ key, label }) => (
+          <div key={key}>
+            <label className="text-xs text-foreground/50 mb-1 block">{label}</label>
+            <input {...register(key as "name")} className={inputCls} />
+          </div>
+        ))}
+        <div>
+          <label className="text-xs text-foreground/50 mb-1 block">Description</label>
+          <textarea {...register("description")} rows={3} className={inputCls + " resize-none"} />
+        </div>
+        <div>
+          <label className="text-xs text-foreground/50 mb-1 block">Hero Image URL</label>
+          <input {...register("heroImage")} className={inputCls} />
+        </div>
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Contact & Address</h3>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div><label className="text-xs text-foreground/50 mb-1 block">Phone</label><input {...register("phone")} className={inputCls} /></div>
+          <div><label className="text-xs text-foreground/50 mb-1 block">Email</label><input {...register("email")} className={inputCls} /></div>
+        </div>
+        <div><label className="text-xs text-foreground/50 mb-1 block">Street</label><input {...register("street")} className={inputCls} /></div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {(["city", "state", "zip", "country"] as const).map((f) => (
+            <div key={f}><label className="text-xs text-foreground/50 mb-1 block capitalize">{f}</label><input {...register(f)} className={inputCls} /></div>
+          ))}
+        </div>
+      </div>
+      <button type="submit" className="flex items-center gap-2 px-5 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors">
+        <Save className="w-3.5 h-3.5" /> {saved ? "Saved!" : "Save Changes"}
+      </button>
+    </form>
+  );
+}
+
+function PaymentsTab() {
+  const [enableCard, setEnableCard] = useState(true);
+  const [enableBank, setEnableBank] = useState(true);
+  const [enableCash, setEnableCash] = useState(false);
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Payment Methods</h3>
+        {[
+          { label: "Credit / Debit Card", sub: "Accept Visa, Mastercard, Amex", val: enableCard, set: setEnableCard },
+          { label: "Bank Transfer", sub: "Manual wire transfer", val: enableBank, set: setEnableBank },
+          { label: "Cash on Delivery", sub: "Pay when order arrives", val: enableCash, set: setEnableCash },
+        ].map(({ label, sub, val, set }) => (
+          <div key={label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+            <div><p className="text-sm text-foreground">{label}</p><p className="text-xs text-foreground/40">{sub}</p></div>
+            <Toggle checked={val} onChange={() => set(!val)} />
+          </div>
+        ))}
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Checkout Settings</h3>
+        <div><label className="text-xs text-foreground/50 mb-1 block">Delivery Fee ($)</label><input type="number" defaultValue={15} className={inputCls} /></div>
+        <div><label className="text-xs text-foreground/50 mb-1 block">Minimum Order Amount ($)</label><input type="number" defaultValue={25} className={inputCls} /></div>
+        <div><label className="text-xs text-foreground/50 mb-1 block">Tax Rate (%)</label><input type="number" defaultValue={8} className={inputCls} /></div>
+      </div>
+      <button className="flex items-center gap-2 px-5 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors">
+        <Save className="w-3.5 h-3.5" /> Save Changes
+      </button>
+    </div>
+  );
+}
+
+function NotificationsTab() {
+  const prefs = [
+    { label: "New Reservation", sub: "Notify when a new booking is made", defaultVal: true },
+    { label: "New Order", sub: "Notify when a new order is placed", defaultVal: true },
+    { label: "Order Status Update", sub: "Notify when order status changes", defaultVal: false },
+    { label: "Low Stock Alert", sub: "Notify when menu items run low", defaultVal: false },
+    { label: "Customer Message", sub: "Notify for new contact form submissions", defaultVal: true },
+  ];
+  const [state, setState] = useState(prefs.map((p) => p.defaultVal));
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Notification Preferences</h3>
+        {prefs.map(({ label, sub }, i) => (
+          <div key={label} className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
+            <div><p className="text-sm text-foreground">{label}</p><p className="text-xs text-foreground/40">{sub}</p></div>
+            <Toggle checked={state[i]} onChange={() => setState(state.map((v, j) => j === i ? !v : v))} />
+          </div>
+        ))}
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Email Notifications</h3>
+        <div><label className="text-xs text-foreground/50 mb-1 block">Notification Email</label><input type="email" defaultValue="admin@restaurant.com" className={inputCls} /></div>
+      </div>
+      <button className="flex items-center gap-2 px-5 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors">
+        <Save className="w-3.5 h-3.5" /> Save Preferences
+      </button>
+    </div>
+  );
+}
+
+function SecurityTab() {
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Two-Factor Authentication</h3>
+        <p className="text-xs text-foreground/50">Add an extra layer of security to your account.</p>
+        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-400/20 rounded-lg text-sm hover:bg-emerald-600/30 transition-colors">
+          <Shield className="w-3.5 h-3.5" /> Enable 2FA
+        </button>
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Active Sessions</h3>
+        <p className="text-xs text-foreground/50">You are currently signed in on 1 device.</p>
+        <button className="text-xs text-red-400 hover:underline">Sign out of all other devices</button>
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Backup & Restore</h3>
+        <p className="text-xs text-foreground/50">Export all your restaurant data as a JSON backup.</p>
+        <div className="flex gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 bg-white/5 text-foreground/70 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors">
+            <HardDrive className="w-3.5 h-3.5" /> Export Backup
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white/5 text-foreground/70 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> Restore
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SiteThemeTab() {
+  const { siteTheme, updateSiteTheme } = useRestaurantStore();
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+    if (siteTheme.primaryHex) {
+      document.documentElement.style.setProperty("--primary", hexToHsl(siteTheme.primaryHex));
+    }
+  };
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-5">
+        <h3 className="text-sm font-semibold text-foreground">Customer Website Colors</h3>
+        <div className="grid sm:grid-cols-3 gap-4">
+          {[
+            { label: "Primary Color", key: "primaryHex" as const, sub: "Buttons, links, accents" },
+            { label: "Secondary Color", key: "secondaryHex" as const, sub: "Backgrounds, cards" },
+            { label: "Accent Color", key: "accentHex" as const, sub: "Hover states, borders" },
+          ].map(({ label, key, sub }) => (
+            <div key={key}>
+              <label className="text-xs text-foreground/50 mb-1 block">{label}</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={siteTheme[key]}
+                  onChange={(e) => updateSiteTheme({ [key]: e.target.value })}
+                  className="w-10 h-8 rounded border border-white/10 cursor-pointer bg-transparent"
+                />
+                <input
+                  type="text"
+                  value={siteTheme[key]}
+                  onChange={(e) => updateSiteTheme({ [key]: e.target.value })}
+                  className={inputCls + " font-mono text-xs"}
+                />
+              </div>
+              <p className="text-xs text-foreground/30 mt-1">{sub}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Button Style</h3>
+        <div className="flex gap-3">
+          {(["rounded", "sharp", "pill"] as const).map((style) => (
+            <button
+              key={style}
+              onClick={() => updateSiteTheme({ buttonStyle: style })}
+              className={cn(
+                "px-5 py-2 text-sm capitalize border transition-colors",
+                style === "rounded" ? "rounded-lg" : style === "pill" ? "rounded-full" : "rounded-none",
+                siteTheme.buttonStyle === style
+                  ? "bg-primary/15 text-primary border-primary/30"
+                  : "bg-white/5 text-foreground/60 border-white/10 hover:bg-white/10"
+              )}
+            >
+              {style}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Typography</h3>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs text-foreground/50 mb-1 block">Heading Font</label>
+            <select
+              value={siteTheme.fontHeading}
+              onChange={(e) => updateSiteTheme({ fontHeading: e.target.value })}
+              className="w-full bg-[hsl(15,13%,10%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none"
+            >
+              <option>Cormorant Garamond</option>
+              <option>Playfair Display</option>
+              <option>Libre Baskerville</option>
+              <option>Merriweather</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-foreground/50 mb-1 block">Body Font</label>
+            <select
+              value={siteTheme.fontBody}
+              onChange={(e) => updateSiteTheme({ fontBody: e.target.value })}
+              className="w-full bg-[hsl(15,13%,10%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none"
+            >
+              <option>Inter</option>
+              <option>Lato</option>
+              <option>Open Sans</option>
+              <option>Source Sans 3</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Appearance</h3>
+        <div className="grid sm:grid-cols-2 gap-5">
+          <div>
+            <label className="text-xs text-foreground/50 mb-2 block">Border Radius ({siteTheme.borderRadius}px)</label>
+            <input type="range" min={0} max={24} value={siteTheme.borderRadius} onChange={(e) => updateSiteTheme({ borderRadius: Number(e.target.value) })} className="w-full accent-primary" />
+          </div>
+          <div>
+            <label className="text-xs text-foreground/50 mb-2 block">Shadow Intensity ({siteTheme.shadowIntensity}%)</label>
+            <input type="range" min={0} max={100} value={siteTheme.shadowIntensity} onChange={(e) => updateSiteTheme({ shadowIntensity: Number(e.target.value) })} className="w-full accent-primary" />
+          </div>
+        </div>
+      </div>
+
+      <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors">
+        <Save className="w-3.5 h-3.5" /> {saved ? "Applied!" : "Apply Theme"}
+      </button>
+    </div>
+  );
+}
+
+function AdminThemeTab() {
+  const { adminTheme, updateAdminTheme } = useRestaurantStore();
+  const [saved, setSaved] = useState(false);
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-5">
+        <h3 className="text-sm font-semibold text-foreground">Admin Dashboard Colors</h3>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {[
+            { label: "Primary / Accent Color", key: "primaryHex" as const, sub: "Buttons, active states, highlights" },
+            { label: "Sidebar Background", key: "sidebarBgHex" as const, sub: "Left navigation panel" },
+            { label: "Main Background", key: "mainBgHex" as const, sub: "Content area background" },
+            { label: "Button Color", key: "buttonHex" as const, sub: "Primary action buttons" },
+          ].map(({ label, key, sub }) => (
+            <div key={key}>
+              <label className="text-xs text-foreground/50 mb-1 block">{label}</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={adminTheme[key]}
+                  onChange={(e) => updateAdminTheme({ [key]: e.target.value })}
+                  className="w-10 h-8 rounded border border-white/10 cursor-pointer bg-transparent"
+                />
+                <input
+                  type="text"
+                  value={adminTheme[key]}
+                  onChange={(e) => updateAdminTheme({ [key]: e.target.value })}
+                  className={inputCls + " font-mono text-xs"}
+                />
+              </div>
+              <p className="text-xs text-foreground/30 mt-1">{sub}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Preview</h3>
+        <div className="flex gap-2 p-4 rounded-lg" style={{ backgroundColor: adminTheme.mainBgHex }}>
+          <div className="w-20 rounded-lg p-2 text-xs text-white/60" style={{ backgroundColor: adminTheme.sidebarBgHex }}>
+            <div className="mb-2 text-[10px] font-bold" style={{ color: adminTheme.primaryHex }}>ADMIN</div>
+            {["Dashboard", "Menu", "Orders"].map((item) => (
+              <div key={item} className="py-1 text-[10px]">{item}</div>
+            ))}
+          </div>
+          <div className="flex-1 space-y-2">
+            <button className="px-3 py-1 rounded text-[10px] text-black font-bold" style={{ backgroundColor: adminTheme.buttonHex }}>
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2500); }}
+        className="flex items-center gap-2 px-5 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors"
+      >
+        <Save className="w-3.5 h-3.5" /> {saved ? "Saved!" : "Save Admin Theme"}
+      </button>
+    </div>
+  );
+}
+
+export default function AdminSettings() {
+  const [activeTab, setActiveTab] = useState<Tab>("account");
+
+  const tabContent: Record<Tab, React.ReactNode> = {
+    account: <AccountTab />,
+    general: <GeneralTab />,
+    payments: <PaymentsTab />,
+    notifications: <NotificationsTab />,
+    security: <SecurityTab />,
+    "site-theme": <SiteThemeTab />,
+    "admin-theme": <AdminThemeTab />,
   };
 
   return (
     <AdminLayout
-      title="Settings"
-      subtitle="Edit your restaurant's core information"
-      actions={
-        <button
-          form="settings-form"
-          type="submit"
-          className="flex items-center gap-1.5 px-4 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-50"
-        >
-          <Save className="w-3.5 h-3.5" />
-          {saved ? "Saved!" : "Save Changes"}
-        </button>
-      }
+      title="System Settings"
+      subtitle="Manage your account, restaurant configuration, and appearance"
     >
-      <form id="settings-form" onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-2xl">
-        <section className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-foreground">Identity</h2>
-          <Field label="Restaurant Name" error={errors.name?.message}>
-            <input {...register("name")} className={inputCls} />
-          </Field>
-          <Field label="Tagline" error={errors.tagline?.message}>
-            <input {...register("tagline")} className={inputCls} />
-          </Field>
-          <Field label="Description" error={errors.description?.message}>
-            <textarea {...register("description")} rows={3} className={inputCls + " resize-none"} />
-          </Field>
-          <Field label="Hero Image URL" error={errors.heroImage?.message}>
-            <input {...register("heroImage")} className={inputCls} />
-          </Field>
-        </section>
-
-        <section className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-foreground">Contact</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Phone" error={errors.phone?.message}>
-              <input {...register("phone")} className={inputCls} />
-            </Field>
-            <Field label="Email" error={errors.email?.message}>
-              <input {...register("email")} type="email" className={inputCls} />
-            </Field>
-          </div>
-        </section>
-
-        <section className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-foreground">Address</h2>
-          <Field label="Street" error={errors.street?.message}>
-            <input {...register("street")} className={inputCls} />
-          </Field>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Field label="City" error={errors.city?.message}>
-              <input {...register("city")} className={inputCls} />
-            </Field>
-            <Field label="State" error={errors.state?.message}>
-              <input {...register("state")} className={inputCls} />
-            </Field>
-            <Field label="ZIP" error={errors.zip?.message}>
-              <input {...register("zip")} className={inputCls} />
-            </Field>
-            <Field label="Country" error={errors.country?.message}>
-              <input {...register("country")} className={inputCls} />
-            </Field>
-          </div>
-        </section>
-
-        <section className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-foreground">Social Links</h2>
-          <div className="grid sm:grid-cols-3 gap-4">
-            <Field label="Instagram URL">
-              <input {...register("instagramUrl")} className={inputCls} placeholder="https://instagram.com/..." />
-            </Field>
-            <Field label="Facebook URL">
-              <input {...register("facebookUrl")} className={inputCls} placeholder="https://facebook.com/..." />
-            </Field>
-            <Field label="TikTok URL">
-              <input {...register("tiktokUrl")} className={inputCls} placeholder="https://tiktok.com/..." />
-            </Field>
-          </div>
-        </section>
-      </form>
+      <div className="flex gap-6">
+        <nav className="shrink-0 w-44 space-y-0.5">
+          {TABS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={cn(
+                "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left transition-colors",
+                activeTab === key
+                  ? "bg-primary/15 text-primary font-medium"
+                  : "text-foreground/55 hover:text-foreground hover:bg-white/5"
+              )}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="flex-1 min-w-0">{tabContent[activeTab]}</div>
+      </div>
     </AdminLayout>
   );
 }

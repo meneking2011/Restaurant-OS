@@ -14,6 +14,41 @@ export interface RestaurantConfig {
   heroImage: string;
 }
 
+export interface SiteTheme {
+  primaryHex: string;
+  primaryColor: string;
+  secondaryHex: string;
+  accentHex: string;
+  buttonStyle: "rounded" | "sharp" | "pill";
+  borderRadius: number;
+  shadowIntensity: number;
+  fontHeading: string;
+  fontBody: string;
+  lightMode: boolean;
+}
+
+export interface AdminTheme {
+  primaryHex: string;
+  sidebarBgHex: string;
+  mainBgHex: string;
+  buttonHex: string;
+}
+
+export interface QuickControls {
+  restaurantOpen: boolean;
+  acceptReservations: boolean;
+  onlineOrders: boolean;
+  whatsapp: boolean;
+  maintenanceMode: boolean;
+}
+
+export interface ActivityLogEntry {
+  id: string;
+  message: string;
+  detail: string;
+  timestamp: string;
+}
+
 export interface MenuItem {
   id: string;
   name: string;

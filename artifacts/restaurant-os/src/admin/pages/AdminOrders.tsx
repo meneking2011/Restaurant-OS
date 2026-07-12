@@ -4,15 +4,8 @@ import { Order } from "@/types/restaurant";
 import { AdminLayout } from "../layout/AdminLayout";
 import { cn } from "@/lib/utils";
 import {
-  ShoppingBag,
-  Clock,
-  CheckCircle,
-  XCircle,
-  ChefHat,
-  Truck,
-  CreditCard,
-  Building,
-  X,
+  ShoppingBag, Clock, CheckCircle, XCircle, ChefHat, Truck,
+  CreditCard, Building, X, Download, Search, Printer,
 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatCurrency";
 
@@ -22,7 +15,7 @@ const STATUS_CONFIG: Record<Order["status"], { label: string; color: string; ico
   new: { label: "New", color: "text-blue-400 bg-blue-400/10 border-blue-400/20", icon: ShoppingBag },
   preparing: { label: "Preparing", color: "text-amber-400 bg-amber-400/10 border-amber-400/20", icon: ChefHat },
   ready: { label: "Ready", color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", icon: Truck },
-  completed: { label: "Completed", color: "text-foreground/50 bg-white/5 border-white/10", icon: CheckCircle },
+  completed: { label: "Completed", color: "text-foreground/40 bg-white/5 border-white/10", icon: CheckCircle },
   cancelled: { label: "Cancelled", color: "text-red-400 bg-red-400/10 border-red-400/20", icon: XCircle },
 };
 
@@ -38,58 +31,51 @@ function OrderDetailPanel({ order, onClose }: { order: Order; onClose: () => voi
   const nextStatus = STATUS_FLOW[order.status];
 
   return (
-    <div className="bg-[hsl(15,13%,7%)] border border-white/10 rounded-xl p-5 flex flex-col gap-5">
+    <div className="bg-[hsl(15,13%,7%)] border border-white/10 rounded-xl p-5 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-180px)]">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">Order Details #{order.id.replace("ord-", "")}</h2>
-        <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-foreground/50 hover:text-foreground transition-colors">
+        <h2 className="text-sm font-semibold text-foreground">
+          Order Details <span className="text-primary">#{order.id.replace("ord-", "")}</span>
+        </h2>
+        <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>
 
       <div>
         <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Customer & Delivery</p>
-        <p className="text-sm font-medium text-foreground">{order.customerName}</p>
+        <p className="text-sm font-semibold text-foreground">{order.customerName}</p>
         <p className="text-xs text-foreground/50">{order.email}</p>
         <p className="text-xs text-foreground/50">{order.phone}</p>
         <p className="text-xs text-foreground/50 mt-1">{order.deliveryAddress}</p>
+        <div className="flex items-center gap-1.5 mt-2 text-xs text-foreground/40">
+          {order.paymentMethod === "card" ? <CreditCard className="w-3 h-3" /> : <Building className="w-3 h-3" />}
+          <span>{order.paymentMethod === "card" ? "Credit / Debit Card" : "Bank Transfer"}</span>
+        </div>
       </div>
 
       <div>
         <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Ordered Items</p>
         <div className="space-y-2">
           {order.items.map((item, i) => (
-            <div key={i} className="flex justify-between text-sm">
-              <span className="text-foreground/80">{item.name} <span className="text-foreground/40">×{item.quantity}</span></span>
+            <div key={i} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 text-xs">
+              <span className="text-foreground/80 truncate">{item.name}</span>
+              <span className="text-foreground/40">×{item.quantity}</span>
               <span className="text-foreground">{formatCurrency(item.price * item.quantity)}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="border-t border-white/10 pt-4">
+      <div className="border-t border-white/10 pt-3">
         <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Financials</p>
-        <div className="space-y-1.5 text-xs">
-          <div className="flex justify-between text-foreground/60">
-            <span>Subtotal</span><span>{formatCurrency(order.subtotal)}</span>
-          </div>
-          <div className="flex justify-between text-foreground/60">
-            <span>Delivery Fee</span><span>{formatCurrency(order.deliveryFee)}</span>
-          </div>
-          <div className="flex justify-between text-foreground/60">
-            <span>Tax</span><span>{formatCurrency(order.tax)}</span>
-          </div>
-          {order.discount && (
-            <div className="flex justify-between text-emerald-400">
-              <span>Discount</span><span>-{formatCurrency(order.discount)}</span>
-            </div>
-          )}
+        <div className="space-y-1 text-xs">
+          <div className="flex justify-between text-foreground/60"><span>Subtotal</span><span>{formatCurrency(order.subtotal)}</span></div>
+          <div className="flex justify-between text-foreground/60"><span>Delivery</span><span>{formatCurrency(order.deliveryFee)}</span></div>
+          <div className="flex justify-between text-foreground/60"><span>Tax</span><span>{formatCurrency(order.tax)}</span></div>
+          {order.discount ? <div className="flex justify-between text-emerald-400"><span>Discount</span><span>-{formatCurrency(order.discount)}</span></div> : null}
           <div className="flex justify-between text-sm font-semibold text-foreground border-t border-white/10 pt-2 mt-1">
             <span>Total</span><span>{formatCurrency(order.totalAmount)}</span>
           </div>
-        </div>
-        <div className="flex items-center gap-1.5 mt-3 text-xs text-foreground/50">
-          {order.paymentMethod === "card" ? <CreditCard className="w-3.5 h-3.5" /> : <Building className="w-3.5 h-3.5" />}
-          <span>{order.paymentMethod === "card" ? "Credit / Debit Card" : "Bank Transfer"}</span>
         </div>
       </div>
 
@@ -102,7 +88,7 @@ function OrderDetailPanel({ order, onClose }: { order: Order; onClose: () => voi
 
       <div>
         <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Order Status</p>
-        <span className={cn("inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium capitalize", cfg.color)}>
+        <span className={cn("inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium", cfg.color)}>
           <cfg.icon className="w-3 h-3" />
           {cfg.label}
         </span>
@@ -126,6 +112,10 @@ function OrderDetailPanel({ order, onClose }: { order: Order; onClose: () => voi
           </button>
         </div>
       )}
+
+      <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white/5 text-foreground/60 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors">
+        <Printer className="w-3.5 h-3.5" /> Print Receipt
+      </button>
     </div>
   );
 }
@@ -134,8 +124,7 @@ export default function AdminOrders() {
   const { orders } = useRestaurantStore();
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const [search, setSearch] = useState("");
 
   const counts: Record<StatusFilter, number> = {
     all: orders.length,
@@ -146,77 +135,114 @@ export default function AdminOrders() {
     cancelled: orders.filter((o) => o.status === "cancelled").length,
   };
 
+  const filtered = orders
+    .filter((o) => filter === "all" || o.status === filter)
+    .filter((o) => !search || o.customerName.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search));
+
   return (
     <AdminLayout
-      title="Orders"
+      title="Orders Manager"
       subtitle="Manage and track all customer orders"
-    >
-      <div className="flex gap-2 flex-wrap mb-6">
-        {(["all", "new", "preparing", "ready", "completed", "cancelled"] as StatusFilter[]).map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs capitalize transition-colors border",
-              filter === s
-                ? "bg-primary/15 text-primary border-primary/30"
-                : "bg-white/5 text-foreground/60 border-white/10 hover:bg-white/10 hover:text-foreground"
-            )}
-          >
-            {s} <span className="ml-1 opacity-60">({counts[s]})</span>
+      actions={
+        <div className="flex items-center gap-2">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 text-foreground/70 rounded-lg text-xs hover:bg-white/10 transition-colors">
+            <Download className="w-3 h-3" /> Export
           </button>
-        ))}
-      </div>
+        </div>
+      }
+    >
+      <div className={cn("grid gap-5", selectedOrder ? "grid-cols-1 xl:grid-cols-[1fr_340px]" : "grid-cols-1")}>
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex gap-1.5 flex-wrap flex-1">
+              {(["all", "new", "preparing", "ready", "completed", "cancelled"] as StatusFilter[]).map((s) => {
+                const cfg = s === "all" ? null : STATUS_CONFIG[s];
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setFilter(s)}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs capitalize transition-colors border",
+                      filter === s
+                        ? "bg-primary/15 text-primary border-primary/30"
+                        : "bg-white/5 text-foreground/50 border-white/10 hover:bg-white/10 hover:text-foreground"
+                    )}
+                  >
+                    {s === "all" ? "All Orders" : cfg?.label} <span className="opacity-60 ml-1">{counts[s]}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="relative hidden md:block">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search orders..."
+                className="pl-8 pr-4 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/40 w-44"
+              />
+            </div>
+          </div>
 
-      <div className={cn("grid gap-6", selectedOrder ? "grid-cols-1 xl:grid-cols-5" : "grid-cols-1")}>
-        <div className={cn("space-y-2", selectedOrder ? "xl:col-span-3" : "")}>
-          {filtered.length === 0 && (
-            <div className="text-center py-16 text-foreground/40 text-sm">No orders found.</div>
-          )}
-          {filtered.map((order) => {
-            const cfg = STATUS_CONFIG[order.status];
-            const StatusIcon = cfg.icon;
-            return (
-              <div
-                key={order.id}
-                onClick={() => setSelectedOrder(order.id === selectedOrder?.id ? null : order)}
-                className={cn(
-                  "flex items-start gap-4 bg-white/5 border rounded-xl p-4 cursor-pointer transition-colors",
-                  selectedOrder?.id === order.id
-                    ? "border-primary/40 bg-primary/5"
-                    : "border-white/10 hover:border-white/20 hover:bg-white/[0.07]"
-                )}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-foreground/40 font-mono">#{order.id.replace("ord-", "")}</span>
-                      <p className="text-sm font-medium text-foreground">{order.customerName}</p>
-                    </div>
-                    <span className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium capitalize shrink-0", cfg.color)}>
-                      <StatusIcon className="w-3 h-3" />
-                      {cfg.label}
+          <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+            <div className="hidden lg:grid grid-cols-[1.8fr_1.2fr_0.8fr_0.9fr_0.9fr_0.8fr] text-xs text-foreground/40 uppercase tracking-widest px-4 py-3 border-b border-white/10">
+              <span>Customer</span>
+              <span>Date & Time</span>
+              <span>Payment</span>
+              <span>Status</span>
+              <span>Total</span>
+              <span>Actions</span>
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="text-center py-14 text-foreground/30 text-sm">No orders found.</div>
+            )}
+
+            {filtered.map((order) => {
+              const cfg = STATUS_CONFIG[order.status];
+              return (
+                <div
+                  key={order.id}
+                  onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
+                  className={cn(
+                    "grid grid-cols-1 lg:grid-cols-[1.8fr_1.2fr_0.8fr_0.9fr_0.9fr_0.8fr] items-center px-4 py-3.5 border-b border-white/5 last:border-0 cursor-pointer transition-colors hover:bg-white/[0.03] gap-2 lg:gap-0",
+                    selectedOrder?.id === order.id && "bg-primary/5"
+                  )}
+                >
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{order.customerName}</p>
+                    <p className="text-xs text-foreground/40 font-mono">#{order.id.replace("ord-", "")}</p>
+                  </div>
+                  <div className="text-xs text-foreground/60 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>
+                      {new Date(order.orderedAt).toLocaleDateString()} {new Date(order.orderedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-3 text-xs text-foreground/50 mt-1">
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(order.orderedAt).toLocaleDateString()} {new Date(order.orderedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                    <span>{order.items.length} item{order.items.length !== 1 ? "s" : ""}</span>
-                    <span className="font-medium text-foreground/70">{formatCurrency(order.totalAmount)}</span>
-                    <span>{order.paymentMethod === "card" ? "Card" : "Bank"}</span>
+                  <span className="text-xs text-foreground/60">{order.paymentMethod === "card" ? "Card" : "Bank"}</span>
+                  <span className={cn("text-xs px-2 py-0.5 rounded-full border font-medium capitalize w-fit", cfg.color)}>
+                    {cfg.label}
+                  </span>
+                  <span className="text-sm font-medium text-foreground">{formatCurrency(order.totalAmount)}</span>
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
+                      className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {selectedOrder && (
-          <div className="xl:col-span-2">
-            <OrderDetailPanel
-              order={selectedOrder}
-              onClose={() => setSelectedOrder(null)}
-            />
-          </div>
+          <OrderDetailPanel
+            order={selectedOrder}
+            onClose={() => setSelectedOrder(null)}
+          />
         )}
       </div>
     </AdminLayout>

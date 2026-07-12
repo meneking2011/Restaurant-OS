@@ -1,197 +1,189 @@
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { AdminLayout } from "../layout/AdminLayout";
 import { StatCard } from "../components/StatCard";
+import { Link } from "wouter";
 import {
   UtensilsCrossed,
   CalendarCheck,
-  Star,
-  TrendingUp,
+  ShoppingBag,
+  Globe,
+  Plus,
+  Image,
+  Megaphone,
   Clock,
-  CheckCircle,
-  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button
+      onClick={onChange}
+      className={cn(
+        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none shrink-0",
+        checked ? "bg-primary" : "bg-white/20"
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow",
+          checked ? "translate-x-4.5" : "translate-x-0.5"
+        )}
+      />
+    </button>
+  );
+}
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} min${mins > 1 ? "s" : ""} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr${hrs > 1 ? "s" : ""} ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 export default function AdminDashboard() {
-  const { menuItems, reservations, testimonials } = useRestaurantStore();
+  const { menuItems, reservations, orders, quickControls, updateQuickControls, activityLog, config } = useRestaurantStore();
 
-  const pending = reservations.filter((r) => r.status === "pending").length;
-  const confirmed = reservations.filter((r) => r.status === "confirmed").length;
-  const cancelled = reservations.filter((r) => r.status === "cancelled").length;
-  const avgRating =
-    testimonials.length > 0
-      ? (testimonials.reduce((s, t) => s + t.rating, 0) / testimonials.length).toFixed(1)
-      : "—";
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayReservations = reservations.filter((r) => r.date === todayStr).length;
+  const pendingOrders = orders.filter((o) => o.status === "new").length;
+  const availableItems = menuItems.filter((m) => m.available).length;
 
-  const upcomingReservations = [...reservations]
-    .filter((r) => r.status !== "cancelled")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 5);
+  const controls = [
+    { key: "restaurantOpen" as const, label: "Restaurant Open" },
+    { key: "acceptReservations" as const, label: "Accept Reservations" },
+    { key: "onlineOrders" as const, label: "Online Orders" },
+    { key: "whatsapp" as const, label: "WhatsApp" },
+    { key: "maintenanceMode" as const, label: "Maintenance Mode" },
+  ];
 
-  const statusColor: Record<string, string> = {
-    pending: "text-amber-400 bg-amber-400/10",
-    confirmed: "text-emerald-400 bg-emerald-400/10",
-    cancelled: "text-red-400 bg-red-400/10",
-  };
+  const quickActions = [
+    { label: "Add Menu Item", icon: UtensilsCrossed, href: "/admin/menu" },
+    { label: "Add Gallery Image", icon: Image, href: "/admin/gallery" },
+    { label: "View Reservations", icon: CalendarCheck, href: "/admin/reservations" },
+    { label: "Create Promotion", icon: Megaphone, href: "/admin/settings" },
+  ];
 
   return (
     <AdminLayout
-      title="Dashboard"
-      subtitle="Overview of your restaurant's key metrics"
+      title={`Welcome, Chef ${config.name.split(" ")[0] || "Chef"}!`}
+      subtitle="Here's what's happening with your restaurant today"
     >
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatCard
-          label="Menu Items"
-          value={menuItems.length}
-          icon={UtensilsCrossed}
-          trend={`${menuItems.filter((m) => m.available).length} available`}
-          trendUp
-        />
-        <StatCard
-          label="Reservations"
-          value={reservations.length}
+          label="Today's Reservations"
+          value={todayReservations}
+          subLabel={`${todayReservations} Today`}
           icon={CalendarCheck}
-          trend={`${pending} pending`}
-          trendUp={pending > 0}
-        />
-        <StatCard
-          label="Avg Rating"
-          value={avgRating}
-          icon={Star}
-          trend={`from ${testimonials.length} reviews`}
           trendUp
         />
         <StatCard
-          label="Confirmed"
-          value={confirmed}
-          icon={TrendingUp}
-          trend={`${cancelled} cancelled`}
-          trendUp={confirmed > cancelled}
+          label="Pending Orders"
+          value={pendingOrders}
+          subLabel={`${pendingOrders} Pending`}
+          icon={ShoppingBag}
+          trendUp={pendingOrders > 0}
+        />
+        <StatCard
+          label="Total Menu Items"
+          value={menuItems.length}
+          subLabel={`${availableItems} Available`}
+          icon={UtensilsCrossed}
+          trendUp
+        />
+        <StatCard
+          label="Website Status"
+          value="Online"
+          subLabel="Syncing"
+          icon={Globe}
+          trendUp
+          valueClassName="text-emerald-400"
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <CalendarCheck className="w-4 h-4 text-primary" />
-            Upcoming Reservations
-          </h2>
-          {upcomingReservations.length === 0 ? (
-            <p className="text-sm text-foreground/40 text-center py-6">No upcoming reservations</p>
-          ) : (
-            <div className="space-y-2">
-              {upcomingReservations.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center justify-between py-3 border-b border-white/5 last:border-0"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{r.name}</p>
-                    <p className="text-xs text-foreground/50 mt-0.5 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {r.date} · {r.time} · {r.guests} guest{r.guests > 1 ? "s" : ""}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "text-xs px-2 py-0.5 rounded-full font-medium capitalize",
-                      statusColor[r.status]
-                    )}
-                  >
-                    {r.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-4 mb-6">
+        <h2 className="text-sm font-semibold text-foreground mb-4">Quick Website Controls</h2>
+        <div className="flex flex-wrap gap-x-8 gap-y-3">
+          {controls.map(({ key, label }) => (
+            <label key={key} className="flex items-center gap-2.5 cursor-pointer select-none">
+              <Toggle
+                checked={quickControls[key]}
+                onChange={() => updateQuickControls({ [key]: !quickControls[key] })}
+              />
+              <span className="text-sm text-foreground/70">{label}</span>
+            </label>
+          ))}
         </div>
+      </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="bg-white/5 border border-white/10 rounded-xl p-5">
           <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Star className="w-4 h-4 text-primary" />
-            Recent Reviews
+            <Clock className="w-4 h-4 text-primary" />
+            Recent Activity Timeline
           </h2>
-          {testimonials.length === 0 ? (
-            <p className="text-sm text-foreground/40 text-center py-6">No reviews yet</p>
-          ) : (
-            <div className="space-y-3">
-              {[...testimonials].slice(0, 4).map((t) => (
-                <div key={t.id} className="py-3 border-b border-white/5 last:border-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-foreground">{t.name}</p>
-                    <div className="flex gap-0.5">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={cn(
-                            "w-3 h-3",
-                            i < t.rating ? "text-primary fill-primary" : "text-foreground/20"
-                          )}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-foreground/50 line-clamp-2">{t.text}</p>
+          <div className="space-y-4">
+            {activityLog.slice(0, 5).map((entry) => (
+              <div key={entry.id} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="w-2 h-2 rounded-full bg-primary mt-1 shrink-0" />
+                  <div className="w-px flex-1 bg-white/10 mt-1" />
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <UtensilsCrossed className="w-4 h-4 text-primary" />
-            Menu Snapshot
-          </h2>
-          {(["starters", "mains", "desserts", "drinks"] as const).map((cat) => {
-            const items = menuItems.filter((m) => m.category === cat);
-            const avail = items.filter((m) => m.available).length;
-            return (
-              <div key={cat} className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
-                <p className="text-sm capitalize text-foreground">{cat}</p>
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-foreground/50">{items.length} items</span>
-                  <span className="flex items-center gap-1 text-emerald-400">
-                    <CheckCircle className="w-3 h-3" />
-                    {avail} on
-                  </span>
-                  {items.length - avail > 0 && (
-                    <span className="flex items-center gap-1 text-red-400">
-                      <XCircle className="w-3 h-3" />
-                      {items.length - avail} off
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            Reservation Status
-          </h2>
-          <div className="flex flex-col gap-4">
-            {[
-              { label: "Confirmed", count: confirmed, color: "bg-emerald-400", total: reservations.length },
-              { label: "Pending", count: pending, color: "bg-amber-400", total: reservations.length },
-              { label: "Cancelled", count: cancelled, color: "bg-red-400", total: reservations.length },
-            ].map(({ label, count, color, total }) => (
-              <div key={label}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-foreground/60">{label}</span>
-                  <span className="text-foreground">{count}</span>
-                </div>
-                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className={cn("h-full rounded-full", color)}
-                    style={{ width: total > 0 ? `${(count / total) * 100}%` : "0%" }}
-                  />
+                <div className="pb-4 min-w-0">
+                  <p className="text-sm text-foreground/80">
+                    <span className="font-medium text-foreground">{entry.message}</span>
+                    {" · "}
+                    <span className="text-foreground/40 text-xs">{timeAgo(entry.timestamp)}</span>
+                  </p>
+                  <p className="text-xs text-foreground/50 mt-0.5 truncate">{entry.detail}</p>
                 </div>
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Plus className="w-4 h-4 text-primary" />
+            Quick Access Actions
+          </h2>
+          <div className="space-y-2.5">
+            {quickActions.map(({ label, icon: Icon, href }) => (
+              <Link key={href} href={href}>
+                <button className="w-full flex items-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/30 rounded-lg text-sm text-foreground/70 hover:text-foreground transition-all text-left">
+                  <div className="w-7 h-7 rounded-full border border-primary/30 flex items-center justify-center text-primary shrink-0">
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  {label}
+                </button>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Globe className="w-4 h-4 text-primary" />
+            Live Website Preview
+          </h2>
+          <div className="rounded-lg overflow-hidden border border-white/10 mb-3 bg-black/30" style={{ height: 160 }}>
+            <iframe
+              src="/"
+              className="w-full h-full pointer-events-none"
+              style={{ transform: "scale(0.5)", transformOrigin: "top left", width: "200%", height: "200%" }}
+              title="Live site preview"
+            />
+          </div>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full text-center px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/70 hover:text-foreground transition-colors"
+          >
+            Open Preview
+          </a>
         </div>
       </div>
     </AdminLayout>

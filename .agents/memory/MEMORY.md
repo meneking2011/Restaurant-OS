@@ -1,0 +1,1 @@
+- [RestaurantOS RCC architecture](rcc-architecture.md) — full admin panel structure, CSS var format, store keys, and routing conventions

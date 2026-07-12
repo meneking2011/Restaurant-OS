@@ -3,6 +3,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import NotFound from "@/pages/not-found";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
@@ -25,6 +26,11 @@ const AdminGallery = lazy(() => import("@/admin/pages/AdminGallery"));
 const AdminAnalytics = lazy(() => import("@/admin/pages/AdminAnalytics"));
 const AdminBusinessDetails = lazy(() => import("@/admin/pages/AdminBusinessDetails"));
 const AdminSettings = lazy(() => import("@/admin/pages/AdminSettings"));
+const AdminTheme = lazy(() => import("@/admin/pages/AdminTheme"));
+const AdminMediaLibrary = lazy(() => import("@/admin/pages/AdminMediaLibrary"));
+const AdminPages = lazy(() => import("@/admin/pages/AdminPages"));
+const AdminNavigation = lazy(() => import("@/admin/pages/AdminNavigation"));
+const AdminWebsite = lazy(() => import("@/admin/pages/AdminWebsite"));
 
 const queryClient = new QueryClient();
 
@@ -40,7 +46,6 @@ function Router() {
   return (
     <Suspense fallback={<FallbackLoader />}>
       <Switch>
-        {/* Customer website */}
         <Route path="/" component={HomePage} />
         <Route path="/menu" component={MenuPage} />
         <Route path="/about" component={AboutPage} />
@@ -50,13 +55,17 @@ function Router() {
         <Route path="/contact" component={ContactPage} />
         <Route path="/checkout" component={CheckoutPage} />
 
-        {/* Admin — Restaurant Control Center (RCC) */}
         <Route path="/admin" component={AdminDashboard} />
+        <Route path="/admin/website" component={AdminWebsite} />
         <Route path="/admin/business" component={AdminBusinessDetails} />
         <Route path="/admin/menu" component={AdminMenu} />
         <Route path="/admin/reservations" component={AdminReservations} />
         <Route path="/admin/orders" component={AdminOrders} />
         <Route path="/admin/gallery" component={AdminGallery} />
+        <Route path="/admin/media" component={AdminMediaLibrary} />
+        <Route path="/admin/theme" component={AdminTheme} />
+        <Route path="/admin/navigation" component={AdminNavigation} />
+        <Route path="/admin/pages" component={AdminPages} />
         <Route path="/admin/services" component={AdminServices} />
         <Route path="/admin/testimonials" component={AdminTestimonials} />
         <Route path="/admin/analytics" component={AdminAnalytics} />
@@ -72,10 +81,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
+        <ThemeProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
