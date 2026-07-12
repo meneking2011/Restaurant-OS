@@ -1,0 +1,53 @@
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { restaurantConfig } from "@/data/mockData";
+import { motion } from "framer-motion";
+
+export function HeroSection() {
+  return (
+    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+      {/* Background with overlay */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40"
+        style={{ backgroundImage: `url(${restaurantConfig.heroImage})` }}
+      />
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
+
+      <div className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center gap-8">
+        <motion.h1 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="font-serif text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-bold tracking-widest uppercase text-foreground leading-none"
+        >
+          {restaurantConfig.name}
+        </motion.h1>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
+          <Button 
+            asChild
+            variant="destructive" 
+            className="rounded-full px-12 py-6 text-lg tracking-widest font-semibold uppercase hover:scale-105 transition-transform"
+            data-testid="button-hero-menu"
+          >
+            <Link href="/menu">MENU</Link>
+          </Button>
+        </motion.div>
+      </div>
+
+      {/* Decorative Sparkle */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.5 }}
+        transition={{ duration: 1, delay: 1 }}
+        className="absolute bottom-12 left-1/2 -translate-x-1/2 text-primary text-2xl"
+      >
+        ✦
+      </motion.div>
+    </section>
+  );
+}

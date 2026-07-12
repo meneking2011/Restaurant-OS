@@ -1,0 +1,174 @@
+import { RestaurantConfig, MenuItem, Service, Testimonial } from "../types/restaurant";
+
+export const restaurantConfig: RestaurantConfig = {
+  id: "reassurance-demo-1",
+  name: "Reassurance",
+  tagline: "Uncompromising culinary excellence.",
+  description: "A sanctuary of fine dining where every detail is considered. We focus on farm-to-table ingredients, exceptional service, and an atmosphere of refined elegance.",
+  address: {
+    street: "123 Sanctuary Way",
+    city: "Holistic Springs",
+    state: "CA",
+    zip: "90210",
+    country: "USA"
+  },
+  phone: "(555) RE-ASSUR (555-732-7787)",
+  email: "reassurance.support@gmail.com",
+  openingHours: [
+    { day: "Monday", hours: "Closed" },
+    { day: "Tuesday", hours: "5:00 PM - 10:00 PM" },
+    { day: "Wednesday", hours: "5:00 PM - 10:00 PM" },
+    { day: "Thursday", hours: "5:00 PM - 10:00 PM" },
+    { day: "Friday", hours: "5:00 PM - 11:00 PM" },
+    { day: "Saturday", hours: "5:00 PM - 11:00 PM" },
+    { day: "Sunday", hours: "4:00 PM - 9:00 PM" }
+  ],
+  socials: [
+    { platform: "Instagram", url: "#" },
+    { platform: "Facebook", url: "#" },
+    { platform: "TikTok", url: "#" }
+  ],
+  currency: "USD",
+  currencySymbol: "$",
+  logo: "flame", // Identifier for icon
+  heroImage: "https://picsum.photos/seed/reassuranceHero/1920/1080"
+};
+
+export const menuItems: MenuItem[] = [
+  {
+    id: "m1",
+    name: "Seared Duck Breast",
+    description: "Served with a rich pomegranate glaze and root vegetables.",
+    price: 48,
+    category: "mains",
+    image: "https://picsum.photos/seed/m1/400/300",
+    available: true,
+    tags: ["Gluten-Free"],
+    featured: true,
+    inspiredBy: "Autumn Harvests"
+  },
+  {
+    id: "m2",
+    name: "Herb-Crusted Halibut",
+    description: "Line-caught halibut with lemon-herb crust and asparagus.",
+    price: 55,
+    category: "mains",
+    image: "https://picsum.photos/seed/m2/400/300",
+    available: true,
+    tags: ["Sustainable Seafood"],
+    featured: true,
+    inspiredBy: "Coastal Traditions"
+  },
+  {
+    id: "m3",
+    name: "Heirloom Tomato & Burrata Caprese",
+    description: "Fresh burrata, basil, balsamic reduction, olive oil.",
+    price: 26,
+    category: "starters",
+    image: "https://picsum.photos/seed/m3/400/300",
+    available: true,
+    tags: ["Vegetarian", "Farm-to-Table Ethos"],
+    featured: false
+  },
+  {
+    id: "m4",
+    name: "A5 Wagyu Medallions",
+    description: "Premium cuts served with a truffle wine reduction.",
+    price: 110,
+    category: "mains",
+    image: "https://picsum.photos/seed/m4/400/300",
+    available: true,
+    tags: ["Signature"],
+    featured: true,
+    inspiredBy: "Japanese Mastery"
+  },
+  {
+    id: "m5",
+    name: "Chocolate Avocado Mousse",
+    description: "Rich dark chocolate folded with avocado and raspberry coulis.",
+    price: 22,
+    category: "desserts",
+    image: "https://picsum.photos/seed/m5/400/300",
+    available: true,
+    tags: ["Vegan", "Plant-Based Artistry"],
+    featured: true
+  },
+  {
+    id: "m6",
+    name: "Wild Mushroom Risotto",
+    description: "Arborio rice, porcini broth, shaved parmesan, truffle oil.",
+    price: 36,
+    category: "mains",
+    image: "https://picsum.photos/seed/m6/400/300",
+    available: true,
+    tags: ["Vegetarian"],
+    featured: false
+  },
+  {
+    id: "m7",
+    name: "Smoked Old Fashioned",
+    description: "Bourbon, bitters, orange peel, served under hickory smoke.",
+    price: 24,
+    category: "drinks",
+    image: "https://picsum.photos/seed/m7/400/300",
+    available: true,
+    tags: ["Signature"],
+    featured: false
+  },
+  {
+    id: "m8",
+    name: "Oysters on the Half Shell",
+    description: "Half dozen seasonal oysters with mignonette.",
+    price: 32,
+    category: "starters",
+    image: "https://picsum.photos/seed/m8/400/300",
+    available: true,
+    tags: ["Raw Bar"],
+    featured: false
+  }
+];
+
+export const services: Service[] = [
+  {
+    id: "s1",
+    title: "Seasonal Curated Dining",
+    description: "Our tasting menus shift with the seasons, ensuring every ingredient is at its absolute peak. We work directly with local farmers to bring the harvest to your table.",
+    icon: "leaf"
+  },
+  {
+    id: "s2",
+    title: "Private Events & Celebrations",
+    description: "From corporate dinners to intimate anniversaries, our private dining rooms offer an exclusive atmosphere tailored entirely to your party's needs.",
+    icon: "glass"
+  },
+  {
+    id: "s3",
+    title: "Concierge & White-Glove Service",
+    description: "Experience highly managed dining. Our dedicated concierge team ensures your preferences, dietary requirements, and special requests are anticipated before you arrive.",
+    icon: "bell"
+  }
+];
+
+export const testimonials: Testimonial[] = [
+  {
+    id: "t1",
+    name: "Eleanor V.",
+    text: "An unforgettable evening. The Wagyu was flawless, and the ambiance made us feel entirely insulated from the outside world.",
+    rating: 5,
+    date: "2024-09-12"
+  },
+  {
+    id: "t2",
+    name: "Marcus T.",
+    text: "Reassurance lives up to its name. The service is attentive but never intrusive, and the wine pairings were spectacular.",
+    rating: 5,
+    date: "2024-10-05"
+  },
+  {
+    id: "t3",
+    name: "Sophia L.",
+    text: "The chocolate avocado mousse is a revelation. I will be dreaming of this meal for months to come.",
+    rating: 5,
+    date: "2024-11-20"
+  }
+];

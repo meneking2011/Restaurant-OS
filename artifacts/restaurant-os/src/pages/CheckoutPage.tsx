@@ -1,0 +1,237 @@
+import { useState, useEffect } from "react";
+import { Layout } from "@/components/layout/Layout";
+import { SectionContainer } from "@/components/ui/SectionContainer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useCartStore } from "@/store/cartStore";
+import { formatCurrency } from "@/utils/formatCurrency";
+import { ImageComponent } from "@/components/ui/ImageComponent";
+import { Link } from "wouter";
+import { Minus, Plus, Trash2, CreditCard, Building } from "lucide-react";
+import { motion } from "framer-motion";
+
+export default function CheckoutPage() {
+  const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "bank">("card");
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  useEffect(() => {
+    document.title = "Checkout | Reassurance";
+  }, []);
+
+  const subtotal = getTotal();
+  const tax = subtotal * 0.08; // 8% tax mock
+  const deliveryFee = subtotal > 0 ? 15.00 : 0; // Mock fixed delivery fee
+  const total = subtotal + tax + deliveryFee;
+
+  const handleCheckout = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (items.length === 0) return;
+    setIsSuccess(true);
+    clearCart();
+  };
+
+  if (isSuccess) {
+    return (
+      <Layout>
+        <SectionContainer className="bg-background pt-12 md:pt-24 min-h-[70vh] flex flex-col items-center justify-center">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center bg-card p-12 border border-border rounded-sm max-w-2xl w-full"
+          >
+            <div className="w-24 h-24 border-2 border-primary rounded-full flex items-center justify-center mx-auto mb-8">
+              <span className="text-primary text-4xl">✓</span>
+            </div>
+            <h1 className="font-serif text-3xl md:text-5xl uppercase tracking-widest mb-6">Order Confirmed</h1>
+            <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
+              Your order has been received and is being prepared by our culinary team. You will receive an email confirmation shortly.
+            </p>
+            <Button 
+              asChild
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none uppercase tracking-widest px-10 h-14"
+            >
+              <Link href="/menu">Return to Menu</Link>
+            </Button>
+          </motion.div>
+        </SectionContainer>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <SectionContainer className="bg-background pt-12 md:pt-20">
+        <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-12">
+          <span className="text-primary text-2xl mb-4">✦</span>
+          <h1 className="font-serif text-3xl md:text-5xl font-medium tracking-widest uppercase mb-4">
+            Checkout & Order Summary
+          </h1>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="text-center py-20 bg-card border border-border rounded-sm max-w-3xl mx-auto">
+            <p className="text-muted-foreground text-xl mb-8">Your order is empty.</p>
+            <Button asChild variant="outline" className="rounded-none tracking-widest uppercase border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+              <Link href="/menu">Browse Menu</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 max-w-6xl mx-auto">
+            {/* Left side: Cart Items */}
+            <div className="lg:col-span-7 flex flex-col gap-6">
+              <h2 className="text-lg font-serif uppercase tracking-widest text-primary border-b border-border pb-4">Your Selection</h2>
+              
+              <div className="flex flex-col gap-6">
+                {items.map((item) => (
+                  <div key={item.menuItem.id} className="flex gap-4 p-4 bg-card border border-border/50 items-center">
+                    <div className="w-20 h-20 shrink-0">
+                      <ImageComponent 
+                        src={item.menuItem.image} 
+                        alt={item.menuItem.name} 
+                        aspectRatio="square" 
+                        className="w-full h-full object-cover rounded-sm"
+                      />
+                    </div>
+                    
+                    <div className="flex-grow flex flex-col justify-center">
+                      <h3 className="font-serif text-lg tracking-widest uppercase text-foreground">{item.menuItem.name}</h3>
+                      <div className="text-primary font-medium">{formatCurrency(item.menuItem.price)}</div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center border border-border">
+                        <button 
+                          onClick={() => updateQuantity(item.menuItem.id, item.quantity - 1)}
+                          className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="w-8 text-center font-medium">{item.quantity}</span>
+                        <button 
+                          onClick={() => updateQuantity(item.menuItem.id, item.quantity + 1)}
+                          className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      <button 
+                        onClick={() => removeItem(item.menuItem.id)}
+                        className="p-2 text-destructive hover:bg-destructive/10 transition-colors rounded-sm"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right side: Payment & Summary */}
+            <div className="lg:col-span-5 flex flex-col gap-8">
+              <form onSubmit={handleCheckout} className="bg-card border border-border p-6 md:p-8 rounded-sm flex flex-col gap-8">
+                
+                {/* Delivery Info */}
+                <div>
+                  <h2 className="text-sm font-medium tracking-widest uppercase text-muted-foreground mb-4">Delivery Details</h2>
+                  <Input 
+                    required 
+                    placeholder="Delivery Address" 
+                    className="bg-background border-border rounded-none h-12 mb-4" 
+                  />
+                  <Input 
+                    placeholder="Delivery Instructions (Optional)" 
+                    className="bg-background border-border rounded-none h-12" 
+                  />
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <h2 className="text-sm font-medium tracking-widest uppercase text-muted-foreground mb-4">Payment Method</h2>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("card")}
+                      className={`flex flex-col items-center justify-center gap-2 p-4 border rounded-none transition-colors ${
+                        paymentMethod === "card" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      <CreditCard className="w-6 h-6" />
+                      <span className="text-xs uppercase tracking-widest">Credit Card</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("bank")}
+                      className={`flex flex-col items-center justify-center gap-2 p-4 border rounded-none transition-colors ${
+                        paymentMethod === "bank" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      <Building className="w-6 h-6" />
+                      <span className="text-xs uppercase tracking-widest">Bank Transfer</span>
+                    </button>
+                  </div>
+
+                  {paymentMethod === "card" && (
+                    <div className="flex flex-col gap-4">
+                      <Input required placeholder="Card Number" className="bg-background border-border rounded-none h-12" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input required placeholder="MM/YY" className="bg-background border-border rounded-none h-12" />
+                        <Input required placeholder="CVV" className="bg-background border-border rounded-none h-12" />
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === "bank" && (
+                    <div className="text-sm text-muted-foreground bg-background p-4 border border-border">
+                      Bank transfer instructions will be sent to your email. Your order will be prepared once payment is confirmed.
+                    </div>
+                  )}
+                </div>
+
+                {/* Summary */}
+                <div className="border-t border-border pt-6">
+                  <h2 className="text-sm font-medium tracking-widest uppercase text-primary mb-4">Order Summary</h2>
+                  <div className="flex flex-col gap-3 text-sm text-muted-foreground mb-6">
+                    <div className="flex justify-between">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Service & Delivery</span>
+                      <span>{formatCurrency(deliveryFee)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tax (8%)</span>
+                      <span>{formatCurrency(tax)}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-lg font-serif uppercase tracking-widest text-foreground border-t border-border pt-4 mb-8">
+                    <span>Total</span>
+                    <span className="text-primary">{formatCurrency(total)}</span>
+                  </div>
+
+                  <Button 
+                    type="submit"
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-14 rounded-none tracking-widest uppercase font-semibold"
+                    data-testid="button-place-order"
+                  >
+                    Place Order & Pay {formatCurrency(total)}
+                  </Button>
+                </div>
+                
+              </form>
+              
+              <div className="text-center text-sm text-muted-foreground">
+                Need help? <Link href="/contact" className="text-primary hover:underline">Contact Support</Link>
+              </div>
+            </div>
+          </div>
+        )}
+      </SectionContainer>
+    </Layout>
+  );
+}

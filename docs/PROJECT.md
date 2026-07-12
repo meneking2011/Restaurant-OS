@@ -125,7 +125,9 @@ Design everything as if hundreds of restaurants will eventually use it.
 
 Framework
 
-Next.js (App Router)
+React + Vite (App Router patterns via wouter)
+
+Note: Originally planned as Next.js. The Replit monorepo environment uses React + Vite for frontend artifacts. The architecture (pages, layouts, routing, data separation) mirrors Next.js App Router patterns and is designed for easy migration to Next.js or Vercel deployment later.
 
 Language
 
@@ -133,11 +135,23 @@ TypeScript
 
 Styling
 
-Tailwind CSS
+Tailwind CSS v4
 
 State Management
 
-Zustand
+Zustand (cart, future global state)
+
+Routing
+
+wouter (lightweight, Next.js-compatible API)
+
+Forms
+
+react-hook-form + zod
+
+Animations
+
+framer-motion
 
 Backend (Later)
 
@@ -157,7 +171,7 @@ Firebase Storage
 
 Deployment
 
-Vercel (Preferred)
+Vercel (Preferred) — React + Vite builds are fully compatible
 
 ---
 
