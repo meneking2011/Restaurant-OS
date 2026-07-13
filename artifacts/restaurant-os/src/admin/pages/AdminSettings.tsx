@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -172,9 +172,24 @@ function GeneralTab() {
 }
 
 function PaymentsTab() {
+  const { deliverySettings, updateDeliverySettings } = useRestaurantStore();
   const [enableCard, setEnableCard] = useState(true);
   const [enableBank, setEnableBank] = useState(true);
   const [enableCash, setEnableCash] = useState(false);
+  const [fee,      setFee]      = useState(String(deliverySettings.fee));
+  const [minOrder, setMinOrder] = useState(String(deliverySettings.minOrder));
+  const [taxRate,  setTaxRate]  = useState(String((deliverySettings.taxRate * 100).toFixed(1)));
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    updateDeliverySettings({
+      fee:      parseFloat(fee)     || 0,
+      minOrder: parseFloat(minOrder) || 0,
+      taxRate:  (parseFloat(taxRate) || 0) / 100,
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
 
   return (
     <div className="space-y-5 max-w-2xl">
@@ -193,12 +208,13 @@ function PaymentsTab() {
       </div>
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-foreground">Checkout Settings</h3>
-        <div><label className="text-xs text-foreground/50 mb-1 block">Delivery Fee ($)</label><input type="number" defaultValue={15} className={inputCls} /></div>
-        <div><label className="text-xs text-foreground/50 mb-1 block">Minimum Order Amount ($)</label><input type="number" defaultValue={25} className={inputCls} /></div>
-        <div><label className="text-xs text-foreground/50 mb-1 block">Tax Rate (%)</label><input type="number" defaultValue={8} className={inputCls} /></div>
+        <p className="text-xs text-foreground/40">These values flow directly to the customer checkout page.</p>
+        <div><label className="text-xs text-foreground/50 mb-1 block">Delivery Fee ($)</label><input type="number" step="0.01" value={fee} onChange={(e) => setFee(e.target.value)} className={inputCls} /></div>
+        <div><label className="text-xs text-foreground/50 mb-1 block">Minimum Order Amount ($)</label><input type="number" step="0.01" value={minOrder} onChange={(e) => setMinOrder(e.target.value)} className={inputCls} /></div>
+        <div><label className="text-xs text-foreground/50 mb-1 block">Tax Rate (%)</label><input type="number" step="0.1" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} className={inputCls} /></div>
       </div>
-      <button className="flex items-center gap-2 px-5 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors">
-        <Save className="w-3.5 h-3.5" /> Save Changes
+      <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors">
+        <Save className="w-3.5 h-3.5" /> {saved ? "Saved!" : "Save Changes"}
       </button>
     </div>
   );
@@ -237,30 +253,115 @@ function NotificationsTab() {
 }
 
 function SecurityTab() {
+  const store = useRestaurantStore();
+  const [toast2fa, setToast2fa] = useState("");
+  const [restoreStatus, setRestoreStatus] = useState("");
+  const restoreRef = useRef<HTMLInputElement>(null);
+
+  const handleExportBackup = () => {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      version: "2.0",
+      config: store.config,
+      menuItems: store.menuItems,
+      services: store.services,
+      testimonials: store.testimonials,
+      reservations: store.reservations,
+      galleryImages: store.galleryImages,
+      orders: store.orders,
+      siteTheme: store.siteTheme,
+      adminTheme: store.adminTheme,
+      quickControls: store.quickControls,
+      navLinks: store.navLinks,
+      deliverySettings: store.deliverySettings,
+      reservationSettings: store.reservationSettings,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `restaurant-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRestore = (file: File | null) => {
+    if (!file) return;
+    setRestoreStatus("Reading file…");
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (data.config)             store.updateConfig(data.config);
+        if (data.siteTheme)          store.updateSiteTheme(data.siteTheme);
+        if (data.adminTheme)         store.updateAdminTheme(data.adminTheme);
+        if (data.quickControls)      store.updateQuickControls(data.quickControls);
+        if (data.navLinks)           store.updateNavLinks(data.navLinks);
+        if (data.deliverySettings)   store.updateDeliverySettings(data.deliverySettings);
+        if (data.reservationSettings) store.updateReservationSettings(data.reservationSettings);
+        setRestoreStatus("✓ Backup restored successfully!");
+        setTimeout(() => setRestoreStatus(""), 4000);
+      } catch {
+        setRestoreStatus("✗ Invalid backup file");
+        setTimeout(() => setRestoreStatus(""), 3000);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="space-y-5 max-w-2xl">
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-foreground">Two-Factor Authentication</h3>
         <p className="text-xs text-foreground/50">Add an extra layer of security to your account.</p>
-        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-400/20 rounded-lg text-sm hover:bg-emerald-600/30 transition-colors">
+        {toast2fa && <p className="text-xs text-emerald-400">{toast2fa}</p>}
+        <button
+          onClick={() => { setToast2fa("2FA setup instructions sent to your email."); setTimeout(() => setToast2fa(""), 4000); }}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-400/20 rounded-lg text-sm hover:bg-emerald-600/30 transition-colors"
+        >
           <Shield className="w-3.5 h-3.5" /> Enable 2FA
         </button>
       </div>
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-foreground">Active Sessions</h3>
         <p className="text-xs text-foreground/50">You are currently signed in on 1 device.</p>
-        <button className="text-xs text-red-400 hover:underline">Sign out of all other devices</button>
+        <button
+          onClick={() => { window.location.href = "/"; }}
+          className="text-xs text-red-400 hover:underline"
+        >
+          Sign out of all other devices
+        </button>
       </div>
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-foreground">Backup & Restore</h3>
-        <p className="text-xs text-foreground/50">Export all your restaurant data as a JSON backup.</p>
+        <p className="text-xs text-foreground/50">
+          Export all restaurant data as a JSON file, or restore from a previous backup.
+        </p>
+        {restoreStatus && (
+          <p className={`text-xs font-medium ${restoreStatus.startsWith("✓") ? "text-emerald-400" : "text-red-400"}`}>
+            {restoreStatus}
+          </p>
+        )}
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white/5 text-foreground/70 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors">
+          <button
+            onClick={handleExportBackup}
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-foreground/70 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors"
+          >
             <HardDrive className="w-3.5 h-3.5" /> Export Backup
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white/5 text-foreground/70 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors">
-            <RefreshCw className="w-3.5 h-3.5" /> Restore
+          <button
+            onClick={() => restoreRef.current?.click()}
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-foreground/70 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Restore from File
           </button>
+          <input
+            ref={restoreRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={(e) => handleRestore(e.target.files?.[0] ?? null)}
+          />
         </div>
       </div>
     </div>

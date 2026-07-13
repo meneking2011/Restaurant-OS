@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 
 export default function CheckoutPage() {
   const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
-  const { addOrder, quickControls, config } = useRestaurantStore();
+  const { addOrder, quickControls, config, deliverySettings } = useRestaurantStore();
   const [paymentMethod, setPaymentMethod] = useState<"card" | "bank">("card");
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderId, setOrderId] = useState("");
@@ -30,10 +30,13 @@ export default function CheckoutPage() {
     document.title = `Checkout | ${config.name}`;
   }, [config.name]);
 
-  const subtotal = getTotal();
-  const tax = subtotal * 0.08;
-  const deliveryFee = subtotal > 0 ? 15.0 : 0;
-  const total = subtotal + tax + deliveryFee;
+  const taxRate     = deliverySettings?.taxRate     ?? 0.08;
+  const feeAmount   = deliverySettings?.fee         ?? 15;
+  const subtotal    = getTotal();
+  const tax         = subtotal * taxRate;
+  const deliveryFee = subtotal > 0 ? feeAmount : 0;
+  const total       = subtotal + tax + deliveryFee;
+  const taxPct      = Math.round(taxRate * 100);
 
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,7 +356,7 @@ export default function CheckoutPage() {
                       <span>{formatCurrency(deliveryFee)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Tax (8%)</span>
+                      <span>Tax ({taxPct}%)</span>
                       <span>{formatCurrency(tax)}</span>
                     </div>
                   </div>

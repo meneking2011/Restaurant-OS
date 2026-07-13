@@ -78,14 +78,14 @@ export function HeroSection() {
         >
           <Button
             asChild
-            variant="destructive"
-            className="px-12 py-6 text-lg tracking-widest font-semibold uppercase hover:scale-105 transition-transform"
+            className="px-12 py-6 text-lg tracking-widest font-semibold uppercase hover:scale-105 transition-transform hover:opacity-90"
             style={{
               backgroundColor: siteTheme.primaryHex,
               color: siteTheme.buttonTextColorHex || "#0d0b09",
               borderRadius: btnRadius,
               borderWidth: siteTheme.buttonBorderWidth ? `${siteTheme.buttonBorderWidth}px` : undefined,
               borderColor: siteTheme.primaryHex,
+              border: siteTheme.buttonBorderWidth ? `${siteTheme.buttonBorderWidth}px solid ${siteTheme.primaryHex}` : undefined,
             }}
             data-testid="button-hero-menu"
           >

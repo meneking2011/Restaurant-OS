@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { Order } from "@/types/restaurant";
 import { AdminLayout } from "../layout/AdminLayout";
@@ -12,39 +12,119 @@ import { formatCurrency } from "@/utils/formatCurrency";
 type StatusFilter = "all" | "new" | "preparing" | "ready" | "completed" | "cancelled";
 
 const STATUS_CONFIG: Record<Order["status"], { label: string; color: string; icon: React.ElementType }> = {
-  new:       { label: "New",       color: "text-blue-400 bg-blue-400/10 border-blue-400/20",       icon: ShoppingBag },
-  preparing: { label: "Preparing", color: "text-amber-400 bg-amber-400/10 border-amber-400/20",   icon: ChefHat    },
-  ready:     { label: "Ready",     color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", icon: Truck  },
-  completed: { label: "Completed", color: "text-foreground/40 bg-white/5 border-white/10",         icon: CheckCircle },
-  cancelled: { label: "Cancelled", color: "text-red-400 bg-red-400/10 border-red-400/20",          icon: XCircle },
+  new:       { label: "New",       color: "text-blue-400 bg-blue-400/10 border-blue-400/20",         icon: ShoppingBag  },
+  preparing: { label: "Preparing", color: "text-amber-400 bg-amber-400/10 border-amber-400/20",     icon: ChefHat      },
+  ready:     { label: "Ready",     color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", icon: Truck       },
+  completed: { label: "Completed", color: "text-foreground/40 bg-white/5 border-white/10",           icon: CheckCircle  },
+  cancelled: { label: "Cancelled", color: "text-red-400 bg-red-400/10 border-red-400/20",            icon: XCircle     },
 };
 
-// new → preparing → ready → completed (auto-progresses from ready)
 const STATUS_FLOW: Partial<Record<Order["status"], Order["status"]>> = {
   new:       "preparing",
   preparing: "ready",
   ready:     "completed",
 };
 
+// ── Receipt Print ─────────────────────────────────────────────────────────────
+function printReceipt(order: Order, restaurantName: string) {
+  const win = window.open("", "_blank", "width=400,height=600");
+  if (!win) return;
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Receipt #${order.id.replace("ord-", "")}</title>
+      <style>
+        body { font-family: monospace; font-size: 13px; padding: 24px; max-width: 320px; margin: 0 auto; }
+        h1 { text-align: center; font-size: 18px; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 4px; }
+        .center { text-align: center; }
+        .divider { border-top: 1px dashed #999; margin: 10px 0; }
+        .row { display: flex; justify-content: space-between; margin: 4px 0; }
+        .total { font-weight: bold; font-size: 15px; }
+        @media print { button { display: none; } }
+      </style>
+    </head>
+    <body>
+      <h1>${restaurantName}</h1>
+      <p class="center">Order Receipt</p>
+      <div class="divider"></div>
+      <p><strong>Order:</strong> #${order.id.replace("ord-", "")}</p>
+      <p><strong>Customer:</strong> ${order.customerName}</p>
+      <p><strong>Date:</strong> ${new Date(order.orderedAt).toLocaleString()}</p>
+      <p><strong>Payment:</strong> ${order.paymentMethod === "card" ? "Credit Card" : "Bank Transfer"}</p>
+      ${order.deliveryAddress ? `<p><strong>Address:</strong> ${order.deliveryAddress}</p>` : ""}
+      <div class="divider"></div>
+      ${order.items.map((i) => `
+        <div class="row"><span>${i.name} ×${i.quantity}</span><span>${formatCurrency(i.price * i.quantity)}</span></div>
+      `).join("")}
+      <div class="divider"></div>
+      <div class="row"><span>Subtotal</span><span>${formatCurrency(order.subtotal)}</span></div>
+      <div class="row"><span>Delivery</span><span>${formatCurrency(order.deliveryFee)}</span></div>
+      <div class="row"><span>Tax</span><span>${formatCurrency(order.tax)}</span></div>
+      ${order.discount ? `<div class="row"><span>Discount</span><span>-${formatCurrency(order.discount)}</span></div>` : ""}
+      <div class="divider"></div>
+      <div class="row total"><span>TOTAL</span><span>${formatCurrency(order.totalAmount)}</span></div>
+      ${order.specialNotes ? `<div class="divider"></div><p><em>Notes: ${order.specialNotes}</em></p>` : ""}
+      <div class="divider"></div>
+      <p class="center">Thank you for your order!</p>
+      <br/>
+      <button onclick="window.print()">🖨 Print</button>
+    </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 300);
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+function exportOrdersCSV(orders: Order[]) {
+  const header = ["Order ID", "Customer", "Email", "Phone", "Date", "Status", "Payment", "Subtotal", "Delivery", "Tax", "Total", "Address", "Notes"];
+  const rows = orders.map((o) => [
+    o.id,
+    o.customerName,
+    o.email,
+    o.phone,
+    new Date(o.orderedAt).toLocaleString(),
+    o.status,
+    o.paymentMethod,
+    o.subtotal.toFixed(2),
+    o.deliveryFee.toFixed(2),
+    o.tax.toFixed(2),
+    o.totalAmount.toFixed(2),
+    o.deliveryAddress ?? "",
+    o.specialNotes ?? "",
+  ]);
+
+  const csv = [header, ...rows]
+    .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Order Detail Panel ────────────────────────────────────────────────────────
 function OrderDetailPanel({ orderId, onClose }: { orderId: string; onClose: () => void }) {
-  // Always read live order from store so status updates are reflected immediately
-  const order = useRestaurantStore((s) => s.orders.find((o) => o.id === orderId));
+  const order           = useRestaurantStore((s) => s.orders.find((o) => o.id === orderId));
+  const config          = useRestaurantStore((s) => s.config);
   const { updateOrderStatus } = useRestaurantStore();
 
   if (!order) return null;
 
-  const cfg = STATUS_CONFIG[order.status];
+  const cfg        = STATUS_CONFIG[order.status];
   const nextStatus = STATUS_FLOW[order.status];
 
   const handleAdvance = () => {
     if (!nextStatus) return;
     updateOrderStatus(order.id, nextStatus);
-    // If advancing to "ready", automatically progress to "completed" after 5 seconds
-    // to reflect the real-time kitchen-to-customer handoff
     if (nextStatus === "ready") {
-      setTimeout(() => {
-        updateOrderStatus(order.id, "completed");
-      }, 5000);
+      setTimeout(() => updateOrderStatus(order.id, "completed"), 5000);
     }
   };
 
@@ -52,18 +132,14 @@ function OrderDetailPanel({ orderId, onClose }: { orderId: string; onClose: () =
     <div className="bg-[hsl(15,13%,7%)] border border-white/10 rounded-xl p-5 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-180px)]">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">
-          Order Details{" "}
-          <span className="text-primary">#{order.id.replace("ord-", "")}</span>
+          Order <span className="text-primary">#{order.id.replace("ord-", "")}</span>
         </h2>
-        <button
-          onClick={onClose}
-          className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
-        >
+        <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Customer & Delivery */}
+      {/* Customer */}
       <div>
         <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Customer & Delivery</p>
         <p className="text-sm font-semibold text-foreground">{order.customerName}</p>
@@ -71,18 +147,12 @@ function OrderDetailPanel({ orderId, onClose }: { orderId: string; onClose: () =
         <p className="text-xs text-foreground/50">{order.phone}</p>
         <p className="text-xs text-foreground/50 mt-1">{order.deliveryAddress}</p>
         <div className="flex items-center gap-1.5 mt-2 text-xs text-foreground/40">
-          {order.paymentMethod === "card" ? (
-            <CreditCard className="w-3 h-3" />
-          ) : (
-            <Building className="w-3 h-3" />
-          )}
-          <span>
-            {order.paymentMethod === "card" ? "Credit / Debit Card" : "Bank Transfer"}
-          </span>
+          {order.paymentMethod === "card" ? <CreditCard className="w-3 h-3" /> : <Building className="w-3 h-3" />}
+          <span>{order.paymentMethod === "card" ? "Credit / Debit Card" : "Bank Transfer"}</span>
         </div>
       </div>
 
-      {/* Ordered Items */}
+      {/* Items */}
       <div>
         <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Ordered Items</p>
         <div className="space-y-2">
@@ -100,19 +170,11 @@ function OrderDetailPanel({ orderId, onClose }: { orderId: string; onClose: () =
       <div className="border-t border-white/10 pt-3">
         <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Financials</p>
         <div className="space-y-1 text-xs">
-          <div className="flex justify-between text-foreground/60">
-            <span>Subtotal</span><span>{formatCurrency(order.subtotal)}</span>
-          </div>
-          <div className="flex justify-between text-foreground/60">
-            <span>Delivery</span><span>{formatCurrency(order.deliveryFee)}</span>
-          </div>
-          <div className="flex justify-between text-foreground/60">
-            <span>Tax</span><span>{formatCurrency(order.tax)}</span>
-          </div>
+          <div className="flex justify-between text-foreground/60"><span>Subtotal</span><span>{formatCurrency(order.subtotal)}</span></div>
+          <div className="flex justify-between text-foreground/60"><span>Delivery</span><span>{formatCurrency(order.deliveryFee)}</span></div>
+          <div className="flex justify-between text-foreground/60"><span>Tax</span><span>{formatCurrency(order.tax)}</span></div>
           {order.discount ? (
-            <div className="flex justify-between text-emerald-400">
-              <span>Discount</span><span>-{formatCurrency(order.discount)}</span>
-            </div>
+            <div className="flex justify-between text-emerald-400"><span>Discount</span><span>-{formatCurrency(order.discount)}</span></div>
           ) : null}
           <div className="flex justify-between text-sm font-semibold text-foreground border-t border-white/10 pt-2 mt-1">
             <span>Total</span><span>{formatCurrency(order.totalAmount)}</span>
@@ -120,7 +182,7 @@ function OrderDetailPanel({ orderId, onClose }: { orderId: string; onClose: () =
         </div>
       </div>
 
-      {/* Special Notes */}
+      {/* Notes */}
       {order.specialNotes && (
         <div className="bg-white/5 rounded-lg p-3">
           <p className="text-xs text-foreground/40 uppercase tracking-widest mb-1">Special Notes</p>
@@ -128,7 +190,7 @@ function OrderDetailPanel({ orderId, onClose }: { orderId: string; onClose: () =
         </div>
       )}
 
-      {/* Current Status */}
+      {/* Status */}
       <div>
         <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Order Status</p>
         <span className={cn("inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium", cfg.color)}>
@@ -137,7 +199,7 @@ function OrderDetailPanel({ orderId, onClose }: { orderId: string; onClose: () =
         </span>
       </div>
 
-      {/* Action Buttons */}
+      {/* Actions */}
       {order.status !== "completed" && order.status !== "cancelled" && (
         <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
           {nextStatus && (
@@ -146,9 +208,7 @@ function OrderDetailPanel({ orderId, onClose }: { orderId: string; onClose: () =
               className="w-full px-4 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors"
             >
               Mark as {STATUS_CONFIG[nextStatus].label}
-              {nextStatus === "ready" && (
-                <span className="ml-2 text-xs opacity-70">(auto-completes)</span>
-              )}
+              {nextStatus === "ready" && <span className="ml-2 text-xs opacity-70">(auto-completes in 5s)</span>}
             </button>
           )}
           <button
@@ -160,18 +220,22 @@ function OrderDetailPanel({ orderId, onClose }: { orderId: string; onClose: () =
         </div>
       )}
 
-      <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white/5 text-foreground/60 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors">
+      <button
+        onClick={() => printReceipt(order, config.name)}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white/5 text-foreground/60 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors"
+      >
         <Printer className="w-3.5 h-3.5" /> Print Receipt
       </button>
     </div>
   );
 }
 
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdminOrders() {
   const { orders } = useRestaurantStore();
-  const [filter, setFilter] = useState<StatusFilter>("all");
+  const [filter,          setFilter]          = useState<StatusFilter>("all");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search,          setSearch]          = useState("");
 
   const counts: Record<StatusFilter, number> = {
     all:       orders.length,
@@ -184,12 +248,7 @@ export default function AdminOrders() {
 
   const filtered = orders
     .filter((o) => filter === "all" || o.status === filter)
-    .filter(
-      (o) =>
-        !search ||
-        o.customerName.toLowerCase().includes(search.toLowerCase()) ||
-        o.id.includes(search)
-    )
+    .filter((o) => !search || o.customerName.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search))
     .sort((a, b) => new Date(b.orderedAt).getTime() - new Date(a.orderedAt).getTime());
 
   return (
@@ -197,11 +256,12 @@ export default function AdminOrders() {
       title="Orders Manager"
       subtitle="Manage and track all customer orders"
       actions={
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 text-foreground/70 rounded-lg text-xs hover:bg-white/10 transition-colors">
-            <Download className="w-3 h-3" /> Export
-          </button>
-        </div>
+        <button
+          onClick={() => exportOrdersCSV(filtered)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 text-foreground/70 rounded-lg text-xs hover:bg-white/10 transition-colors"
+        >
+          <Download className="w-3 h-3" /> Export CSV
+        </button>
       }
     >
       <div className={cn("grid gap-5", selectedOrderId ? "grid-cols-1 xl:grid-cols-[1fr_340px]" : "grid-cols-1")}>
@@ -228,12 +288,12 @@ export default function AdminOrders() {
                 );
               })}
             </div>
-            <div className="relative hidden md:block">
+            <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search orders..."
+                placeholder="Search orders…"
                 className="pl-8 pr-4 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/40 w-44"
               />
             </div>
@@ -251,13 +311,11 @@ export default function AdminOrders() {
             </div>
 
             {filtered.length === 0 && (
-              <div className="text-center py-14 text-foreground/30 text-sm">
-                No orders found.
-              </div>
+              <div className="text-center py-14 text-foreground/30 text-sm">No orders found.</div>
             )}
 
             {filtered.map((order) => {
-              const cfg = STATUS_CONFIG[order.status];
+              const cfg        = STATUS_CONFIG[order.status];
               const isSelected = selectedOrderId === order.id;
               return (
                 <div
@@ -270,40 +328,34 @@ export default function AdminOrders() {
                 >
                   <div>
                     <p className="text-sm font-medium text-foreground">{order.customerName}</p>
-                    <p className="text-xs text-foreground/40 font-mono">
-                      #{order.id.replace("ord-", "")}
-                    </p>
+                    <p className="text-xs text-foreground/40 font-mono">#{order.id.replace("ord-", "")}</p>
                   </div>
                   <div className="text-xs text-foreground/60 flex items-center gap-1">
                     <Clock className="w-3 h-3 shrink-0" />
                     <span>
                       {new Date(order.orderedAt).toLocaleDateString()}{" "}
-                      {new Date(order.orderedAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {new Date(order.orderedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
-                  <span className="text-xs text-foreground/60">
-                    {order.paymentMethod === "card" ? "Card" : "Bank"}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-xs px-2 py-0.5 rounded-full border font-medium capitalize w-fit",
-                      cfg.color
-                    )}
-                  >
+                  <span className="text-xs text-foreground/60">{order.paymentMethod === "card" ? "Card" : "Bank"}</span>
+                  <span className={cn("text-xs px-2 py-0.5 rounded-full border font-medium capitalize w-fit", cfg.color)}>
                     {cfg.label}
                   </span>
-                  <span className="text-sm font-medium text-foreground">
-                    {formatCurrency(order.totalAmount)}
-                  </span>
+                  <span className="text-sm font-medium text-foreground">{formatCurrency(order.totalAmount)}</span>
                   <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => setSelectedOrderId(isSelected ? null : order.id)}
                       className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+                      title="View details"
                     >
                       <Search className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); printReceipt(order, "Restaurant"); }}
+                      className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+                      title="Print receipt"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -312,7 +364,7 @@ export default function AdminOrders() {
           </div>
         </div>
 
-        {/* Detail Panel — always reads live order from store */}
+        {/* Detail Panel */}
         {selectedOrderId && (
           <OrderDetailPanel
             orderId={selectedOrderId}

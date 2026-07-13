@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -62,6 +63,11 @@ const brandingSchema = z.object({
 function BrandingTab() {
   const { config, updateConfig } = useRestaurantStore();
   const [saved, setSaved] = useState(false);
+  const [logoPreview,    setLogoPreview]    = useState<string | null>(config.logo && config.logo !== "flame" ? config.logo : null);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+  const logoRef    = React.useRef<HTMLInputElement>(null);
+  const faviconRef = React.useRef<HTMLInputElement>(null);
+
   const {
     register,
     handleSubmit,
@@ -75,11 +81,31 @@ function BrandingTab() {
       heroImage:   config.heroImage,
     },
   });
+
+  const handleLogoUpload = (file: File | null) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const url = e.target?.result as string;
+      setLogoPreview(url);
+      updateConfig({ logo: url });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFaviconUpload = (file: File | null) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setFaviconPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const onSubmit = (data: any) => {
     updateConfig(data);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
       <Field label="Restaurant Name" error={errors.name?.message as string}>
@@ -94,24 +120,46 @@ function BrandingTab() {
       <Field label="Hero Image URL" error={errors.heroImage?.message as string}>
         <input {...register("heroImage")} className={inputCls} />
       </Field>
-      <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t border-white/10">
+
+      <div className="grid sm:grid-cols-2 gap-6 pt-2 border-t border-white/10">
+        {/* Logo */}
         <div>
           <label className="text-xs text-foreground/50 mb-2 block">Logo</label>
-          <div className="w-16 h-16 border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
-            {config.logo && config.logo !== "flame" ? (
-              <img src={config.logo} alt="Logo" className="w-full h-full object-contain rounded-lg" />
+          <div
+            className="w-24 h-24 border-2 border-dashed border-white/20 rounded-xl flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors overflow-hidden"
+            onClick={() => logoRef.current?.click()}
+            title="Click to upload logo"
+          >
+            {logoPreview ? (
+              <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
             ) : (
-              <span className="text-xs text-foreground/30">Upload</span>
+              <span className="text-[10px] text-foreground/30 text-center leading-tight px-2">Click to upload</span>
             )}
           </div>
+          <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleLogoUpload(e.target.files?.[0] ?? null)} />
+          {logoPreview && (
+            <button type="button" onClick={() => { setLogoPreview(null); updateConfig({ logo: "flame" }); }} className="text-[10px] text-red-400 hover:underline mt-1">Remove</button>
+          )}
         </div>
+
+        {/* Favicon */}
         <div>
           <label className="text-xs text-foreground/50 mb-2 block">Favicon</label>
-          <div className="w-16 h-16 border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
-            <span className="text-xs text-foreground/30">Upload</span>
+          <div
+            className="w-24 h-24 border-2 border-dashed border-white/20 rounded-xl flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors overflow-hidden"
+            onClick={() => faviconRef.current?.click()}
+            title="Click to upload favicon"
+          >
+            {faviconPreview ? (
+              <img src={faviconPreview} alt="Favicon" className="w-full h-full object-contain" />
+            ) : (
+              <span className="text-[10px] text-foreground/30 text-center leading-tight px-2">Click to upload</span>
+            )}
           </div>
+          <input ref={faviconRef} type="file" accept="image/png,image/x-icon,image/svg+xml" className="hidden" onChange={(e) => handleFaviconUpload(e.target.files?.[0] ?? null)} />
         </div>
       </div>
+
       <button
         type="submit"
         className="flex items-center gap-1.5 px-4 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors"
@@ -302,15 +350,22 @@ function SocialMediaTab() {
 
 // ── Delivery Tab ──────────────────────────────────────────────────────────────
 function DeliveryTab() {
-  const { quickControls, updateQuickControls } = useRestaurantStore();
-  const [deliveryFee,    setDeliveryFee]    = useState("15.00");
-  const [minOrder,       setMinOrder]       = useState("25.00");
-  const [taxRate,        setTaxRate]        = useState("8");
-  const [deliveryRadius, setDeliveryRadius] = useState("10");
-  const [estimatedTime,  setEstimatedTime]  = useState("30-45");
+  const { quickControls, updateQuickControls, deliverySettings, updateDeliverySettings } = useRestaurantStore();
+  const [deliveryFee,    setDeliveryFee]    = useState(String(deliverySettings.fee));
+  const [minOrder,       setMinOrder]       = useState(String(deliverySettings.minOrder));
+  const [taxRate,        setTaxRate]        = useState(String((deliverySettings.taxRate * 100).toFixed(1)));
+  const [deliveryRadius, setDeliveryRadius] = useState(String(deliverySettings.radiusKm));
+  const [estimatedTime,  setEstimatedTime]  = useState(deliverySettings.estimatedTime);
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
+    updateDeliverySettings({
+      fee:           parseFloat(deliveryFee)     || 0,
+      minOrder:      parseFloat(minOrder)         || 0,
+      taxRate:       (parseFloat(taxRate) || 0) / 100,
+      radiusKm:      parseFloat(deliveryRadius)   || 0,
+      estimatedTime,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -409,17 +464,22 @@ function DeliveryTab() {
 
 // ── Reservations Tab ──────────────────────────────────────────────────────────
 function ReservationsTab() {
-  const { quickControls, updateQuickControls } = useRestaurantStore();
-  const [maxPartySize,    setMaxPartySize]    = useState("10");
-  const [slotDuration,   setSlotDuration]    = useState("90");
-  const [advanceNotice,  setAdvanceNotice]   = useState("24");
-  const [maxAdvanceDays, setMaxAdvanceDays]  = useState("60");
-  const [confirmationMsg, setConfirmationMsg] = useState(
-    "Your reservation request has been received. Our team will contact you to confirm."
-  );
+  const { quickControls, updateQuickControls, reservationSettings, updateReservationSettings } = useRestaurantStore();
+  const [maxPartySize,    setMaxPartySize]    = useState(String(reservationSettings.maxPartySize));
+  const [slotDuration,   setSlotDuration]    = useState(String(reservationSettings.slotDurationMins));
+  const [advanceNotice,  setAdvanceNotice]   = useState(String(reservationSettings.advanceNoticeHours));
+  const [maxAdvanceDays, setMaxAdvanceDays]  = useState(String(reservationSettings.maxAdvanceDays));
+  const [confirmationMsg, setConfirmationMsg] = useState(reservationSettings.confirmationMessage);
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
+    updateReservationSettings({
+      maxPartySize:        parseInt(maxPartySize)    || 10,
+      slotDurationMins:    parseInt(slotDuration)    || 90,
+      advanceNoticeHours:  parseInt(advanceNotice)   || 24,
+      maxAdvanceDays:      parseInt(maxAdvanceDays)  || 60,
+      confirmationMessage: confirmationMsg,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };

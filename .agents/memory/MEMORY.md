@@ -1,1 +1,2 @@
 - [RestaurantOS RCC architecture](rcc-architecture.md) — full admin panel structure, CSS var format, store keys, and routing conventions
+- [Store extensions](store-extensions.md) — deliverySettings, reservationSettings, navLinks added to store; CheckoutPage must read these, not hardcode values

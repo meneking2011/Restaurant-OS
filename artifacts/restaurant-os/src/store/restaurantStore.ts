@@ -36,8 +36,31 @@ export interface Reservation {
   createdAt: string;
 }
 
+export interface NavLink {
+  id: string;
+  label: string;
+  href: string;
+  visible: boolean;
+  openInNewTab: boolean;
+}
+
+export interface DeliverySettings {
+  fee: number;
+  taxRate: number;
+  minOrder: number;
+  estimatedTime: string;
+  radiusKm: number;
+}
+
+export interface ReservationSettings {
+  maxPartySize: number;
+  slotDurationMins: number;
+  advanceNoticeHours: number;
+  maxAdvanceDays: number;
+  confirmationMessage: string;
+}
+
 const defaultSiteTheme: SiteTheme = {
-  // Colors
   primaryHex: "#d4a853",
   primaryColor: "38 71% 58%",
   secondaryHex: "#1a1614",
@@ -48,19 +71,14 @@ const defaultSiteTheme: SiteTheme = {
   mutedFgHex: "#8a7d6b",
   linkColorHex: "#d4a853",
   navBgHex: "#0d0b09",
-  // Buttons
   buttonStyle: "sharp",
   buttonTextColorHex: "#0d0b09",
   buttonBorderWidth: 0,
-  // Layout
   borderRadius: 0,
   shadowIntensity: 40,
-  // Typography
   fontHeading: "Cormorant Garamond",
   fontBody: "Inter",
-  // Appearance
   lightMode: false,
-  // Hero
   heroImageUrl: "",
   heroVideoUrl: "",
   heroOverlayOpacity: 60,
@@ -81,12 +99,40 @@ const defaultQuickControls: QuickControls = {
   maintenanceMode: false,
 };
 
+const defaultDeliverySettings: DeliverySettings = {
+  fee: 15,
+  taxRate: 0.08,
+  minOrder: 25,
+  estimatedTime: "30-45",
+  radiusKm: 10,
+};
+
+const defaultReservationSettings: ReservationSettings = {
+  maxPartySize: 10,
+  slotDurationMins: 90,
+  advanceNoticeHours: 24,
+  maxAdvanceDays: 60,
+  confirmationMessage:
+    "Your reservation request has been received. Our team will contact you to confirm.",
+};
+
+const defaultNavLinks: NavLink[] = [
+  { id: "home",         label: "HOME",              href: "/",            visible: true,  openInNewTab: false },
+  { id: "menu",         label: "MENU",              href: "/menu",        visible: true,  openInNewTab: false },
+  { id: "about",        label: "ABOUT US",          href: "/about",       visible: true,  openInNewTab: false },
+  { id: "locate",       label: "LOCATE US",         href: "/locate-us",   visible: true,  openInNewTab: false },
+  { id: "contact",      label: "CONNECT WITH US",   href: "/contact",     visible: true,  openInNewTab: false },
+  { id: "services",     label: "OUR SERVICES",      href: "/services",    visible: true,  openInNewTab: false },
+  { id: "checkout",     label: "ORDER NOW",         href: "/checkout",    visible: true,  openInNewTab: false },
+  { id: "reservations", label: "MAKE RESERVATIONS", href: "/reservations",visible: true,  openInNewTab: false },
+];
+
 const defaultActivityLog: ActivityLogEntry[] = [
-  { id: "al1", message: "New Reservation", detail: "James Harrington booked a table for 2", timestamp: new Date(Date.now() - 2 * 60000).toISOString() },
-  { id: "al2", message: "Order Updated", detail: "Order #ord-001 status changed to Preparing", timestamp: new Date(Date.now() - 15 * 60000).toISOString() },
-  { id: "al3", message: "Menu Item Added", detail: "Wagyu Beef Wellington added to Mains", timestamp: new Date(Date.now() - 30 * 60000).toISOString() },
-  { id: "al4", message: "Gallery Updated", detail: "3 new photos uploaded to gallery", timestamp: new Date(Date.now() - 60 * 60000).toISOString() },
-  { id: "al5", message: "Reservation Confirmed", detail: "Priya Anand reservation confirmed for July 19", timestamp: new Date(Date.now() - 2 * 60 * 60000).toISOString() },
+  { id: "al1", message: "New Reservation",     detail: "James Harrington booked a table for 2",                  timestamp: new Date(Date.now() - 2 * 60000).toISOString() },
+  { id: "al2", message: "Order Updated",       detail: "Order #ord-001 status changed to Preparing",             timestamp: new Date(Date.now() - 15 * 60000).toISOString() },
+  { id: "al3", message: "Menu Item Added",     detail: "Wagyu Beef Wellington added to Mains",                   timestamp: new Date(Date.now() - 30 * 60000).toISOString() },
+  { id: "al4", message: "Gallery Updated",     detail: "3 new photos uploaded to gallery",                       timestamp: new Date(Date.now() - 60 * 60000).toISOString() },
+  { id: "al5", message: "Reservation Confirmed", detail: "Priya Anand reservation confirmed for July 19",        timestamp: new Date(Date.now() - 2 * 60 * 60000).toISOString() },
 ];
 
 interface RestaurantStore {
@@ -101,12 +147,18 @@ interface RestaurantStore {
   adminTheme: AdminTheme;
   quickControls: QuickControls;
   activityLog: ActivityLogEntry[];
+  navLinks: NavLink[];
+  deliverySettings: DeliverySettings;
+  reservationSettings: ReservationSettings;
 
   updateConfig: (config: Partial<RestaurantConfig>) => void;
   updateSiteTheme: (theme: Partial<SiteTheme>) => void;
   updateAdminTheme: (theme: Partial<AdminTheme>) => void;
   updateQuickControls: (controls: Partial<QuickControls>) => void;
   addActivityLog: (entry: Omit<ActivityLogEntry, "id" | "timestamp">) => void;
+  updateNavLinks: (links: NavLink[]) => void;
+  updateDeliverySettings: (settings: Partial<DeliverySettings>) => void;
+  updateReservationSettings: (settings: Partial<ReservationSettings>) => void;
 
   addMenuItem: (item: Omit<MenuItem, "id">) => void;
   updateMenuItem: (id: string, item: Partial<MenuItem>) => void;
@@ -136,12 +188,12 @@ interface RestaurantStore {
 
 const mockReservations: Reservation[] = [
   { id: "r1", name: "James Harrington", email: "james.h@example.com", phone: "(555) 234-5678", date: "2026-07-18", time: "7:00 PM", guests: 2, table: "T12", occasion: "Anniversary", notes: "Please prepare a rose and a small cake if possible.", status: "confirmed", createdAt: "2026-07-10T14:23:00Z" },
-  { id: "r2", name: "Priya Anand", email: "p.anand@example.com", phone: "(555) 987-6543", date: "2026-07-19", time: "8:30 PM", guests: 4, table: "T8", status: "pending", createdAt: "2026-07-11T09:05:00Z" },
-  { id: "r3", name: "Carlos Mendez", email: "carlos.m@example.com", phone: "(555) 456-7890", date: "2026-07-20", time: "6:30 PM", guests: 6, table: "T4", occasion: "Birthday", status: "pending", createdAt: "2026-07-11T17:42:00Z" },
-  { id: "r4", name: "Sophie Laurent", email: "sophie.l@example.com", phone: "(555) 321-0987", date: "2026-07-15", time: "7:30 PM", guests: 2, status: "cancelled", createdAt: "2026-07-08T11:15:00Z" },
-  { id: "r5", name: "Oliver Chen", email: "oliver.c@example.com", phone: "(555) 654-3210", date: "2026-07-22", time: "9:00 PM", guests: 3, table: "T6", occasion: "Business Dinner", status: "confirmed", createdAt: "2026-07-12T08:30:00Z" },
-  { id: "r6", name: "Elena Vasquez", email: "elena.v@example.com", phone: "(555) 789-0123", date: "2026-07-12", time: "7:00 PM", guests: 2, table: "T3", status: "seated", createdAt: "2026-07-12T10:00:00Z" },
-  { id: "r7", name: "Kenji Tanaka", email: "kenji.t@example.com", phone: "(555) 456-7891", date: "2026-07-10", time: "6:00 PM", guests: 5, table: "T9", status: "completed", createdAt: "2026-07-09T12:00:00Z" },
+  { id: "r2", name: "Priya Anand",      email: "p.anand@example.com",  phone: "(555) 987-6543", date: "2026-07-19", time: "8:30 PM", guests: 4, table: "T8",  status: "pending",   createdAt: "2026-07-11T09:05:00Z" },
+  { id: "r3", name: "Carlos Mendez",    email: "carlos.m@example.com", phone: "(555) 456-7890", date: "2026-07-20", time: "6:30 PM", guests: 6, table: "T4",  occasion: "Birthday", status: "pending",   createdAt: "2026-07-11T17:42:00Z" },
+  { id: "r4", name: "Sophie Laurent",   email: "sophie.l@example.com", phone: "(555) 321-0987", date: "2026-07-15", time: "7:30 PM", guests: 2, status: "cancelled",  createdAt: "2026-07-08T11:15:00Z" },
+  { id: "r5", name: "Oliver Chen",      email: "oliver.c@example.com", phone: "(555) 654-3210", date: "2026-07-22", time: "9:00 PM", guests: 3, table: "T6",  occasion: "Business Dinner", status: "confirmed",  createdAt: "2026-07-12T08:30:00Z" },
+  { id: "r6", name: "Elena Vasquez",    email: "elena.v@example.com",  phone: "(555) 789-0123", date: "2026-07-12", time: "7:00 PM", guests: 2, table: "T3",  status: "seated",    createdAt: "2026-07-12T10:00:00Z" },
+  { id: "r7", name: "Kenji Tanaka",     email: "kenji.t@example.com",  phone: "(555) 456-7891", date: "2026-07-10", time: "6:00 PM", guests: 5, table: "T9",  status: "completed", createdAt: "2026-07-09T12:00:00Z" },
 ];
 
 function generateId(prefix: string) {
@@ -162,6 +214,9 @@ export const useRestaurantStore = create<RestaurantStore>()(
       adminTheme: defaultAdminTheme,
       quickControls: defaultQuickControls,
       activityLog: defaultActivityLog,
+      navLinks: defaultNavLinks,
+      deliverySettings: defaultDeliverySettings,
+      reservationSettings: defaultReservationSettings,
 
       updateConfig: (partial) => set((s) => ({ config: { ...s.config, ...partial } })),
       updateSiteTheme: (theme) => set((s) => ({ siteTheme: { ...s.siteTheme, ...theme } })),
@@ -173,6 +228,9 @@ export const useRestaurantStore = create<RestaurantStore>()(
           ...s.activityLog.slice(0, 49),
         ],
       })),
+      updateNavLinks: (links) => set({ navLinks: links }),
+      updateDeliverySettings: (settings) => set((s) => ({ deliverySettings: { ...s.deliverySettings, ...settings } })),
+      updateReservationSettings: (settings) => set((s) => ({ reservationSettings: { ...s.reservationSettings, ...settings } })),
 
       addMenuItem: (item) => set((s) => ({ menuItems: [...s.menuItems, { ...item, id: generateId("m") }] })),
       updateMenuItem: (id, partial) => set((s) => ({ menuItems: s.menuItems.map((m) => m.id === id ? { ...m, ...partial } : m) })),
@@ -188,8 +246,18 @@ export const useRestaurantStore = create<RestaurantStore>()(
 
       addReservation: (data) => set((s) => ({
         reservations: [...s.reservations, { ...data, id: generateId("r"), status: "pending" as const, createdAt: new Date().toISOString() }],
+        activityLog: [
+          { id: generateId("al"), message: "New Reservation", detail: `${data.name} booked a table for ${data.guests}`, timestamp: new Date().toISOString() },
+          ...s.activityLog.slice(0, 49),
+        ],
       })),
-      updateReservationStatus: (id, status) => set((s) => ({ reservations: s.reservations.map((r) => r.id === id ? { ...r, status } : r) })),
+      updateReservationStatus: (id, status) => set((s) => ({
+        reservations: s.reservations.map((r) => r.id === id ? { ...r, status } : r),
+        activityLog: [
+          { id: generateId("al"), message: "Reservation Updated", detail: `Reservation for ${s.reservations.find(r => r.id === id)?.name ?? id} → ${status}`, timestamp: new Date().toISOString() },
+          ...s.activityLog.slice(0, 49),
+        ],
+      })),
       updateReservation: (id, data) => set((s) => ({ reservations: s.reservations.map((r) => r.id === id ? { ...r, ...data } : r) })),
       deleteReservation: (id) => set((s) => ({ reservations: s.reservations.filter((r) => r.id !== id) })),
 
@@ -210,7 +278,7 @@ export const useRestaurantStore = create<RestaurantStore>()(
       updateOrderStatus: (id, status) => set((s) => ({
         orders: s.orders.map((o) => o.id === id ? { ...o, status } : o),
         activityLog: status !== "new" ? [
-          { id: generateId("al"), message: "Order Updated", detail: `Order #${id.replace("ord-", "")} status changed to ${status}`, timestamp: new Date().toISOString() },
+          { id: generateId("al"), message: "Order Updated", detail: `Order #${id.replace("ord-", "")} → ${status}`, timestamp: new Date().toISOString() },
           ...s.activityLog.slice(0, 49),
         ] : s.activityLog,
       })),

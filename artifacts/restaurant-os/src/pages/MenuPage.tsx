@@ -14,7 +14,7 @@ import { Link } from "wouter";
 type Category = 'all' | 'starters' | 'mains' | 'desserts' | 'drinks';
 
 export default function MenuPage() {
-  const { menuItems } = useRestaurantStore();
+  const { menuItems, config } = useRestaurantStore();
   const [activeCategory, setActiveCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -23,8 +23,8 @@ export default function MenuPage() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    document.title = "Menu | Reassurance";
-  }, []);
+    document.title = `Menu | ${config.name}`;
+  }, [config.name]);
 
   const handleAddToCart = (item: typeof menuItems[0]) => {
     addItem(item);
