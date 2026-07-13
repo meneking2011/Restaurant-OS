@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 export function HeroSection() {
   const { config, siteTheme } = useRestaurantStore();
 
-  // heroImageUrl from theme overrides config.heroImage if set
   const bgImage = siteTheme.heroImageUrl || config.heroImage;
   const hasVideo = Boolean(siteTheme.heroVideoUrl);
   const overlayOpacity = (siteTheme.heroOverlayOpacity ?? 60) / 100;
@@ -18,7 +17,6 @@ export function HeroSection() {
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-      {/* Video background */}
       {hasVideo && (
         <video
           key={siteTheme.heroVideoUrl}
@@ -32,7 +30,6 @@ export function HeroSection() {
         </video>
       )}
 
-      {/* Image background (shown when no video, or as fallback) */}
       {!hasVideo && bgImage && (
         <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
@@ -40,16 +37,12 @@ export function HeroSection() {
         />
       )}
 
-      {/* Gradient overlay */}
       <div
         className="absolute inset-0 z-[1]"
-        style={{
-          background: `rgba(0,0,0,${overlayOpacity * 0.7})`,
-        }}
+        style={{ background: `rgba(0,0,0,${overlayOpacity * 0.7})` }}
       />
       <div className="absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-transparent to-background" />
 
-      {/* Content */}
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center gap-8 -mt-24 md:-mt-32">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -80,12 +73,9 @@ export function HeroSection() {
             asChild
             className="px-12 py-6 text-lg tracking-widest font-semibold uppercase hover:scale-105 transition-transform hover:opacity-90"
             style={{
-              backgroundColor: siteTheme.primaryHex,
-              color: siteTheme.buttonTextColorHex || "#0d0b09",
+              backgroundColor: "#c0392b",
+              color: "#ffffff",
               borderRadius: btnRadius,
-              borderWidth: siteTheme.buttonBorderWidth ? `${siteTheme.buttonBorderWidth}px` : undefined,
-              borderColor: siteTheme.primaryHex,
-              border: siteTheme.buttonBorderWidth ? `${siteTheme.buttonBorderWidth}px solid ${siteTheme.primaryHex}` : undefined,
             }}
             data-testid="button-hero-menu"
           >

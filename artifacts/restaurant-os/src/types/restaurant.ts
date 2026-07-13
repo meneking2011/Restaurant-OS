@@ -15,7 +15,6 @@ export interface RestaurantConfig {
 }
 
 export interface SiteTheme {
-  // Colors
   primaryHex: string;
   primaryColor: string;
   secondaryHex: string;
@@ -26,19 +25,14 @@ export interface SiteTheme {
   mutedFgHex: string;
   linkColorHex: string;
   navBgHex: string;
-  // Buttons
   buttonStyle: "rounded" | "sharp" | "pill";
   buttonTextColorHex: string;
   buttonBorderWidth: number;
-  // Layout
   borderRadius: number;
   shadowIntensity: number;
-  // Typography
   fontHeading: string;
   fontBody: string;
-  // Appearance
   lightMode: boolean;
-  // Hero / Background
   heroImageUrl: string;
   heroVideoUrl: string;
   heroOverlayOpacity: number;
@@ -85,6 +79,7 @@ export interface Service {
   title: string;
   description: string;
   icon: string;
+  image?: string;
 }
 
 export interface Testimonial {
@@ -130,4 +125,27 @@ export interface Order {
   totalAmount: number;
   specialNotes?: string;
   orderedAt: string;
+}
+
+export interface CustomPageSection {
+  id: string;
+  type: "hero" | "text" | "cta" | "image-text";
+  heading?: string;
+  subheading?: string;
+  body?: string;
+  imageUrl?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  alignment?: "left" | "center" | "right";
+}
+
+export interface CustomPage {
+  id: string;
+  name: string;
+  slug: string;
+  visible: boolean;
+  showInNav: boolean;
+  showInFooter: boolean;
+  sections: CustomPageSection[];
+  createdAt: string;
 }

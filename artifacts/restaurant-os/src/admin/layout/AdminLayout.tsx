@@ -1,6 +1,6 @@
 import { ReactNode, useState, useRef, useEffect } from "react";
 import { AdminSidebar } from "./AdminSidebar";
-import { Bell, Search, Menu as MenuIcon, X, ShoppingBag, CalendarCheck, Clock } from "lucide-react";
+import { Bell, Search, Menu as MenuIcon, X, ShoppingBag, CalendarCheck, Clock, Undo2, Redo2 } from "lucide-react";
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -22,16 +22,15 @@ function timeAgo(iso: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-// ── Notifications Panel ───────────────────────────────────────────────────────
 function NotificationsPanel({ onClose }: { onClose: () => void }) {
-  const orders      = useRestaurantStore((s) => s.orders);
+  const orders       = useRestaurantStore((s) => s.orders);
   const reservations = useRestaurantStore((s) => s.reservations);
   const activityLog  = useRestaurantStore((s) => s.activityLog);
   const { updateOrderStatus, updateReservationStatus } = useRestaurantStore();
 
-  const newOrders        = orders.filter((o) => o.status === "new");
-  const pendingRes       = reservations.filter((r) => r.status === "pending");
-  const preparingOrders  = orders.filter((o) => o.status === "preparing");
+  const newOrders       = orders.filter((o) => o.status === "new");
+  const pendingRes      = reservations.filter((r) => r.status === "pending");
+  const preparingOrders = orders.filter((o) => o.status === "preparing");
 
   return (
     <div className="absolute right-0 top-full mt-2 w-80 bg-[hsl(15,13%,9%)] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
@@ -43,7 +42,6 @@ function NotificationsPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="max-h-96 overflow-y-auto">
-        {/* Urgent: new orders */}
         {newOrders.length > 0 && (
           <div className="px-4 py-2 border-b border-white/5">
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest mb-2">New Orders</p>
@@ -71,7 +69,6 @@ function NotificationsPanel({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Pending reservations */}
         {pendingRes.length > 0 && (
           <div className="px-4 py-2 border-b border-white/5">
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest mb-2">Pending Reservations</p>
@@ -99,7 +96,6 @@ function NotificationsPanel({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Preparing orders */}
         {preparingOrders.length > 0 && (
           <div className="px-4 py-2 border-b border-white/5">
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest mb-2">In Preparation</p>
@@ -117,7 +113,6 @@ function NotificationsPanel({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Recent activity */}
         <div className="px-4 py-2">
           <p className="text-[10px] text-foreground/40 uppercase tracking-widest mb-2">Recent Activity</p>
           {activityLog.slice(0, 4).map((entry) => (
@@ -148,7 +143,6 @@ function NotificationsPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Search Panel ──────────────────────────────────────────────────────────────
 function SearchPanel({ query, onClose }: { query: string; onClose: () => void }) {
   const [, navigate] = useLocation();
   const { menuItems, orders, reservations, services, testimonials } = useRestaurantStore();
@@ -230,24 +224,24 @@ function SearchPanel({ query, onClose }: { query: string; onClose: () => void })
   );
 }
 
-// ── Main Layout ───────────────────────────────────────────────────────────────
 export function AdminLayout({ children, title, subtitle, actions }: AdminLayoutProps) {
   const config       = useRestaurantStore((s) => s.config);
   const orders       = useRestaurantStore((s) => s.orders);
   const reservations = useRestaurantStore((s) => s.reservations);
+  const { undoChange, redoChange, _historyPast, _historyFuture } = useRestaurantStore();
+
   const pendingOrders = orders.filter((o) => o.status === "new").length;
   const pendingRes    = reservations.filter((r) => r.status === "pending").length;
   const totalAlerts   = pendingOrders + pendingRes;
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [notifOpen, setNotifOpen]   = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [notifOpen,    setNotifOpen]    = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState("");
+  const [searchOpen,   setSearchOpen]   = useState(false);
 
   const notifRef  = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Close panels when clicking outside
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (notifRef.current  && !notifRef.current.contains(e.target as Node))  setNotifOpen(false);
@@ -257,23 +251,15 @@ export function AdminLayout({ children, title, subtitle, actions }: AdminLayoutP
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Close mobile sidebar on route change
-  useEffect(() => { setMobileSidebarOpen(false); }, []);
-
   return (
     <div className="flex min-h-screen bg-[hsl(15,13%,6%)] text-foreground">
-      {/* Desktop sidebar */}
       <div className="hidden md:flex">
         <AdminSidebar />
       </div>
 
-      {/* Mobile sidebar overlay */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setMobileSidebarOpen(false)}
-          />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
           <div className="absolute left-0 top-0 h-full w-64 z-10">
             <AdminSidebar onLinkClick={() => setMobileSidebarOpen(false)} />
           </div>
@@ -281,18 +267,15 @@ export function AdminLayout({ children, title, subtitle, actions }: AdminLayoutP
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="sticky top-0 z-10 flex items-center gap-3 px-4 md:px-6 py-3 bg-[hsl(15,13%,6%)] border-b border-white/10">
-          {/* Mobile hamburger */}
+        <header className="sticky top-0 z-10 flex items-center gap-2 px-3 md:px-6 py-3 bg-[hsl(15,13%,6%)] border-b border-white/10">
           <button
             onClick={() => setMobileSidebarOpen(true)}
-            className="md:hidden p-2 rounded-lg hover:bg-white/5 text-foreground/50 hover:text-foreground transition-colors"
+            className="md:hidden p-2 rounded-lg hover:bg-white/5 text-foreground/50 hover:text-foreground transition-colors shrink-0"
             aria-label="Open navigation"
           >
             <MenuIcon className="w-5 h-5" />
           </button>
 
-          {/* Search */}
           <div className="flex-1 relative hidden sm:block" ref={searchRef}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30 pointer-events-none" />
             <input
@@ -307,8 +290,35 @@ export function AdminLayout({ children, title, subtitle, actions }: AdminLayoutP
             )}
           </div>
 
-          {/* Right side */}
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-1.5 ml-auto">
+            {/* Undo / Redo */}
+            <button
+              onClick={undoChange}
+              disabled={_historyPast.length === 0}
+              title="Undo last change"
+              className={cn(
+                "p-2 rounded-lg transition-colors",
+                _historyPast.length > 0
+                  ? "hover:bg-white/5 text-foreground/60 hover:text-foreground"
+                  : "text-foreground/20 cursor-not-allowed"
+              )}
+            >
+              <Undo2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={redoChange}
+              disabled={_historyFuture.length === 0}
+              title="Redo last change"
+              className={cn(
+                "p-2 rounded-lg transition-colors",
+                _historyFuture.length > 0
+                  ? "hover:bg-white/5 text-foreground/60 hover:text-foreground"
+                  : "text-foreground/20 cursor-not-allowed"
+              )}
+            >
+              <Redo2 className="w-4 h-4" />
+            </button>
+
             {/* Notifications bell */}
             <div className="relative" ref={notifRef}>
               <button
@@ -328,15 +338,13 @@ export function AdminLayout({ children, title, subtitle, actions }: AdminLayoutP
               {notifOpen && <NotificationsPanel onClose={() => setNotifOpen(false)} />}
             </div>
 
-            {/* User pill */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground/70">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground/70">
               <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0">
                 {config.name.charAt(0)}
               </div>
-              <span className="hidden sm:block text-xs truncate max-w-[100px]">{config.name}</span>
+              <span className="hidden sm:block text-xs truncate max-w-[80px]">{config.name}</span>
             </div>
 
-            {/* Publish */}
             <a href="/" target="_blank" rel="noopener noreferrer">
               <button className="px-3 md:px-4 py-1.5 bg-primary text-black text-xs md:text-sm font-semibold rounded-lg hover:bg-primary/80 transition-colors whitespace-nowrap">
                 Publish
@@ -345,7 +353,6 @@ export function AdminLayout({ children, title, subtitle, actions }: AdminLayoutP
           </div>
         </header>
 
-        {/* Page heading */}
         <div className="px-4 md:px-6 pt-5 pb-1">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
@@ -356,13 +363,11 @@ export function AdminLayout({ children, title, subtitle, actions }: AdminLayoutP
           </div>
         </div>
 
-        {/* Content */}
         <main className="flex-1 px-4 md:px-6 py-5 overflow-x-hidden">{children}</main>
 
-        {/* Footer */}
         <footer className="px-4 md:px-6 py-2.5 border-t border-white/5 flex items-center gap-6 text-xs text-foreground/30">
           <span>RestaurantOS <span className="text-foreground/50">v2.0</span></span>
-          <span className="ml-auto">All changes saved to local store</span>
+          <span className="ml-auto">All changes saved automatically</span>
         </footer>
       </div>
     </div>

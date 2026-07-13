@@ -11,6 +11,7 @@ import {
   AdminTheme,
   QuickControls,
   ActivityLogEntry,
+  CustomPage,
 } from "../types/restaurant";
 import {
   restaurantConfig as initialConfig,
@@ -18,7 +19,6 @@ import {
   services as initialServices,
   testimonials as initialTestimonials,
   galleryImages as initialGalleryImages,
-  mockOrders as initialOrders,
 } from "../data/mockData";
 
 export interface Reservation {
@@ -34,6 +34,8 @@ export interface Reservation {
   notes?: string;
   status: "pending" | "confirmed" | "seated" | "completed" | "cancelled";
   createdAt: string;
+  paymentPaid?: boolean;
+  paymentAmount?: number;
 }
 
 export interface NavLink {
@@ -58,7 +60,20 @@ export interface ReservationSettings {
   advanceNoticeHours: number;
   maxAdvanceDays: number;
   confirmationMessage: string;
+  requirePayment: boolean;
+  paymentAmount: number;
+  allowMultiple: boolean;
+  multipleLimit: number;
 }
+
+type StoreSnapshot = {
+  menuItems: MenuItem[];
+  services: Service[];
+  testimonials: Testimonial[];
+  galleryImages: GalleryImage[];
+  navLinks: NavLink[];
+  config: RestaurantConfig;
+};
 
 const defaultSiteTheme: SiteTheme = {
   primaryHex: "#d4a853",
@@ -114,6 +129,10 @@ const defaultReservationSettings: ReservationSettings = {
   maxAdvanceDays: 60,
   confirmationMessage:
     "Your reservation request has been received. Our team will contact you to confirm.",
+  requirePayment: false,
+  paymentAmount: 25,
+  allowMultiple: false,
+  multipleLimit: 1,
 };
 
 const defaultNavLinks: NavLink[] = [
@@ -125,14 +144,6 @@ const defaultNavLinks: NavLink[] = [
   { id: "services",     label: "OUR SERVICES",      href: "/services",    visible: true,  openInNewTab: false },
   { id: "checkout",     label: "ORDER NOW",         href: "/checkout",    visible: true,  openInNewTab: false },
   { id: "reservations", label: "MAKE RESERVATIONS", href: "/reservations",visible: true,  openInNewTab: false },
-];
-
-const defaultActivityLog: ActivityLogEntry[] = [
-  { id: "al1", message: "New Reservation",     detail: "James Harrington booked a table for 2",                  timestamp: new Date(Date.now() - 2 * 60000).toISOString() },
-  { id: "al2", message: "Order Updated",       detail: "Order #ord-001 status changed to Preparing",             timestamp: new Date(Date.now() - 15 * 60000).toISOString() },
-  { id: "al3", message: "Menu Item Added",     detail: "Wagyu Beef Wellington added to Mains",                   timestamp: new Date(Date.now() - 30 * 60000).toISOString() },
-  { id: "al4", message: "Gallery Updated",     detail: "3 new photos uploaded to gallery",                       timestamp: new Date(Date.now() - 60 * 60000).toISOString() },
-  { id: "al5", message: "Reservation Confirmed", detail: "Priya Anand reservation confirmed for July 19",        timestamp: new Date(Date.now() - 2 * 60 * 60000).toISOString() },
 ];
 
 interface RestaurantStore {
@@ -150,6 +161,10 @@ interface RestaurantStore {
   navLinks: NavLink[];
   deliverySettings: DeliverySettings;
   reservationSettings: ReservationSettings;
+  customPages: CustomPage[];
+
+  _historyPast: StoreSnapshot[];
+  _historyFuture: StoreSnapshot[];
 
   updateConfig: (config: Partial<RestaurantConfig>) => void;
   updateSiteTheme: (theme: Partial<SiteTheme>) => void;
@@ -176,6 +191,7 @@ interface RestaurantStore {
   updateReservationStatus: (id: string, status: Reservation["status"]) => void;
   updateReservation: (id: string, data: Partial<Reservation>) => void;
   deleteReservation: (id: string) => void;
+  resetReservations: () => void;
 
   addGalleryImage: (image: Omit<GalleryImage, "id">) => void;
   updateGalleryImage: (id: string, image: Partial<GalleryImage>) => void;
@@ -184,41 +200,62 @@ interface RestaurantStore {
   addOrder: (order: Omit<Order, "id" | "status" | "orderedAt">) => void;
   updateOrderStatus: (id: string, status: Order["status"]) => void;
   cancelOrder: (id: string) => void;
-}
+  resetOrders: () => void;
 
-const mockReservations: Reservation[] = [
-  { id: "r1", name: "James Harrington", email: "james.h@example.com", phone: "(555) 234-5678", date: "2026-07-18", time: "7:00 PM", guests: 2, table: "T12", occasion: "Anniversary", notes: "Please prepare a rose and a small cake if possible.", status: "confirmed", createdAt: "2026-07-10T14:23:00Z" },
-  { id: "r2", name: "Priya Anand",      email: "p.anand@example.com",  phone: "(555) 987-6543", date: "2026-07-19", time: "8:30 PM", guests: 4, table: "T8",  status: "pending",   createdAt: "2026-07-11T09:05:00Z" },
-  { id: "r3", name: "Carlos Mendez",    email: "carlos.m@example.com", phone: "(555) 456-7890", date: "2026-07-20", time: "6:30 PM", guests: 6, table: "T4",  occasion: "Birthday", status: "pending",   createdAt: "2026-07-11T17:42:00Z" },
-  { id: "r4", name: "Sophie Laurent",   email: "sophie.l@example.com", phone: "(555) 321-0987", date: "2026-07-15", time: "7:30 PM", guests: 2, status: "cancelled",  createdAt: "2026-07-08T11:15:00Z" },
-  { id: "r5", name: "Oliver Chen",      email: "oliver.c@example.com", phone: "(555) 654-3210", date: "2026-07-22", time: "9:00 PM", guests: 3, table: "T6",  occasion: "Business Dinner", status: "confirmed",  createdAt: "2026-07-12T08:30:00Z" },
-  { id: "r6", name: "Elena Vasquez",    email: "elena.v@example.com",  phone: "(555) 789-0123", date: "2026-07-12", time: "7:00 PM", guests: 2, table: "T3",  status: "seated",    createdAt: "2026-07-12T10:00:00Z" },
-  { id: "r7", name: "Kenji Tanaka",     email: "kenji.t@example.com",  phone: "(555) 456-7891", date: "2026-07-10", time: "6:00 PM", guests: 5, table: "T9",  status: "completed", createdAt: "2026-07-09T12:00:00Z" },
-];
+  addCustomPage: (page: Omit<CustomPage, "id" | "createdAt">) => void;
+  updateCustomPage: (id: string, data: Partial<CustomPage>) => void;
+  deleteCustomPage: (id: string) => void;
+
+  undoChange: () => void;
+  redoChange: () => void;
+}
 
 function generateId(prefix: string) {
   return `${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function snapshot(s: RestaurantStore): StoreSnapshot {
+  return {
+    menuItems:    s.menuItems,
+    services:     s.services,
+    testimonials: s.testimonials,
+    galleryImages:s.galleryImages,
+    navLinks:     s.navLinks,
+    config:       s.config,
+  };
+}
+
 export const useRestaurantStore = create<RestaurantStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       config: initialConfig,
       menuItems: initialMenuItems,
       services: initialServices,
       testimonials: initialTestimonials,
-      reservations: mockReservations,
+      reservations: [],
       galleryImages: initialGalleryImages,
-      orders: initialOrders,
+      orders: [],
       siteTheme: defaultSiteTheme,
       adminTheme: defaultAdminTheme,
       quickControls: defaultQuickControls,
-      activityLog: defaultActivityLog,
+      activityLog: [],
       navLinks: defaultNavLinks,
       deliverySettings: defaultDeliverySettings,
       reservationSettings: defaultReservationSettings,
+      customPages: [],
 
-      updateConfig: (partial) => set((s) => ({ config: { ...s.config, ...partial } })),
+      _historyPast: [],
+      _historyFuture: [],
+
+      updateConfig: (partial) => {
+        const s = get();
+        set({
+          config: { ...s.config, ...partial },
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
+
       updateSiteTheme: (theme) => set((s) => ({ siteTheme: { ...s.siteTheme, ...theme } })),
       updateAdminTheme: (theme) => set((s) => ({ adminTheme: { ...s.adminTheme, ...theme } })),
       updateQuickControls: (controls) => set((s) => ({ quickControls: { ...s.quickControls, ...controls } })),
@@ -228,21 +265,87 @@ export const useRestaurantStore = create<RestaurantStore>()(
           ...s.activityLog.slice(0, 49),
         ],
       })),
-      updateNavLinks: (links) => set({ navLinks: links }),
+      updateNavLinks: (links) => {
+        const s = get();
+        set({ navLinks: links, _historyPast: [...s._historyPast.slice(-29), snapshot(s)], _historyFuture: [] });
+      },
       updateDeliverySettings: (settings) => set((s) => ({ deliverySettings: { ...s.deliverySettings, ...settings } })),
       updateReservationSettings: (settings) => set((s) => ({ reservationSettings: { ...s.reservationSettings, ...settings } })),
 
-      addMenuItem: (item) => set((s) => ({ menuItems: [...s.menuItems, { ...item, id: generateId("m") }] })),
-      updateMenuItem: (id, partial) => set((s) => ({ menuItems: s.menuItems.map((m) => m.id === id ? { ...m, ...partial } : m) })),
-      deleteMenuItem: (id) => set((s) => ({ menuItems: s.menuItems.filter((m) => m.id !== id) })),
+      addMenuItem: (item) => {
+        const s = get();
+        set({
+          menuItems: [...s.menuItems, { ...item, id: generateId("m") }],
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
+      updateMenuItem: (id, partial) => {
+        const s = get();
+        set({
+          menuItems: s.menuItems.map((m) => m.id === id ? { ...m, ...partial } : m),
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
+      deleteMenuItem: (id) => {
+        const s = get();
+        set({
+          menuItems: s.menuItems.filter((m) => m.id !== id),
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
 
-      addService: (service) => set((s) => ({ services: [...s.services, { ...service, id: generateId("s") }] })),
-      updateService: (id, partial) => set((s) => ({ services: s.services.map((sv) => sv.id === id ? { ...sv, ...partial } : sv) })),
-      deleteService: (id) => set((s) => ({ services: s.services.filter((sv) => sv.id !== id) })),
+      addService: (service) => {
+        const s = get();
+        set({
+          services: [...s.services, { ...service, id: generateId("s") }],
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
+      updateService: (id, partial) => {
+        const s = get();
+        set({
+          services: s.services.map((sv) => sv.id === id ? { ...sv, ...partial } : sv),
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
+      deleteService: (id) => {
+        const s = get();
+        set({
+          services: s.services.filter((sv) => sv.id !== id),
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
 
-      addTestimonial: (t) => set((s) => ({ testimonials: [...s.testimonials, { ...t, id: generateId("t") }] })),
-      updateTestimonial: (id, partial) => set((s) => ({ testimonials: s.testimonials.map((t) => t.id === id ? { ...t, ...partial } : t) })),
-      deleteTestimonial: (id) => set((s) => ({ testimonials: s.testimonials.filter((t) => t.id !== id) })),
+      addTestimonial: (t) => {
+        const s = get();
+        set({
+          testimonials: [...s.testimonials, { ...t, id: generateId("t") }],
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
+      updateTestimonial: (id, partial) => {
+        const s = get();
+        set({
+          testimonials: s.testimonials.map((t) => t.id === id ? { ...t, ...partial } : t),
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
+      deleteTestimonial: (id) => {
+        const s = get();
+        set({
+          testimonials: s.testimonials.filter((t) => t.id !== id),
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
 
       addReservation: (data) => set((s) => ({
         reservations: [...s.reservations, { ...data, id: generateId("r"), status: "pending" as const, createdAt: new Date().toISOString() }],
@@ -260,10 +363,32 @@ export const useRestaurantStore = create<RestaurantStore>()(
       })),
       updateReservation: (id, data) => set((s) => ({ reservations: s.reservations.map((r) => r.id === id ? { ...r, ...data } : r) })),
       deleteReservation: (id) => set((s) => ({ reservations: s.reservations.filter((r) => r.id !== id) })),
+      resetReservations: () => set({ reservations: [] }),
 
-      addGalleryImage: (image) => set((s) => ({ galleryImages: [...s.galleryImages, { ...image, id: generateId("g") }] })),
-      updateGalleryImage: (id, partial) => set((s) => ({ galleryImages: s.galleryImages.map((g) => g.id === id ? { ...g, ...partial } : g) })),
-      deleteGalleryImage: (id) => set((s) => ({ galleryImages: s.galleryImages.filter((g) => g.id !== id) })),
+      addGalleryImage: (image) => {
+        const s = get();
+        set({
+          galleryImages: [...s.galleryImages, { ...image, id: generateId("g") }],
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
+      updateGalleryImage: (id, partial) => {
+        const s = get();
+        set({
+          galleryImages: s.galleryImages.map((g) => g.id === id ? { ...g, ...partial } : g),
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
+      deleteGalleryImage: (id) => {
+        const s = get();
+        set({
+          galleryImages: s.galleryImages.filter((g) => g.id !== id),
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: [],
+        });
+      },
 
       addOrder: (order) => set((s) => {
         const newOrder: Order = { ...order, id: `ord-${generateId("o")}`, status: "new" as const, orderedAt: new Date().toISOString() };
@@ -283,7 +408,49 @@ export const useRestaurantStore = create<RestaurantStore>()(
         ] : s.activityLog,
       })),
       cancelOrder: (id) => set((s) => ({ orders: s.orders.map((o) => o.id === id ? { ...o, status: "cancelled" as const } : o) })),
+      resetOrders: () => set({ orders: [] }),
+
+      addCustomPage: (page) => set((s) => ({
+        customPages: [...s.customPages, { ...page, id: generateId("cp"), createdAt: new Date().toISOString() }],
+      })),
+      updateCustomPage: (id, data) => set((s) => ({
+        customPages: s.customPages.map((p) => p.id === id ? { ...p, ...data } : p),
+      })),
+      deleteCustomPage: (id) => set((s) => ({
+        customPages: s.customPages.filter((p) => p.id !== id),
+      })),
+
+      undoChange: () => {
+        const s = get();
+        if (s._historyPast.length === 0) return;
+        const prev = s._historyPast[s._historyPast.length - 1];
+        const newPast = s._historyPast.slice(0, -1);
+        set({
+          ...prev,
+          _historyPast: newPast,
+          _historyFuture: [snapshot(s), ...s._historyFuture.slice(0, 29)],
+        });
+      },
+
+      redoChange: () => {
+        const s = get();
+        if (s._historyFuture.length === 0) return;
+        const next = s._historyFuture[0];
+        const newFuture = s._historyFuture.slice(1);
+        set({
+          ...next,
+          _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
+          _historyFuture: newFuture,
+        });
+      },
     }),
-    { name: "restaurant-os-data" }
+    {
+      name: "restaurant-os-data",
+      partialize: (state) => {
+        const { _historyPast, _historyFuture, ...rest } = state;
+        void _historyPast; void _historyFuture;
+        return rest;
+      },
+    }
   )
 );

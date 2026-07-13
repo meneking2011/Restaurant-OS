@@ -3,7 +3,8 @@ import { useRestaurantStore, Reservation } from "@/store/restaurantStore";
 import { AdminLayout } from "../layout/AdminLayout";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { CalendarCheck, Download, Plus, Eye, Pencil, X, Check, Clock } from "lucide-react";
+import { PrintReceiptModal, ReceiptData } from "../components/PrintReceiptModal";
+import { CalendarCheck, Download, Plus, Eye, X, Check, Clock, Printer, RotateCcw, Settings2 } from "lucide-react";
 
 type StatusFilter = "all" | "pending" | "confirmed" | "seated" | "completed" | "cancelled";
 
@@ -27,31 +28,181 @@ const NEXT_LABEL: Record<string, string> = {
   seated:    "Mark as Completed",
 };
 
-const inputCls =
-  "w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/40";
+const inputCls = "w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/40";
 
-// ── Export CSV ────────────────────────────────────────────────────────────────
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label?: string }) {
+  return (
+    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+      <button
+        type="button"
+        onClick={onChange}
+        className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0", checked ? "bg-primary" : "bg-white/20")}
+      >
+        <span className={cn("inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow", checked ? "translate-x-4.5" : "translate-x-0.5")} />
+      </button>
+      {label && <span className="text-sm text-foreground/70">{label}</span>}
+    </label>
+  );
+}
+
 function exportReservationsCSV(reservations: Reservation[]) {
-  const header = ["ID", "Name", "Email", "Phone", "Date", "Time", "Guests", "Table", "Occasion", "Status", "Notes", "Created"];
+  const header = ["ID","Name","Email","Phone","Date","Time","Guests","Table","Occasion","Status","Notes","Created"];
   const rows = reservations.map((r) => [
     r.id, r.name, r.email, r.phone, r.date, r.time,
     r.guests, r.table ?? "", r.occasion ?? "", r.status,
     r.notes ?? "", new Date(r.createdAt).toLocaleString(),
   ]);
-  const csv = [header, ...rows]
-    .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
+  const csv = [header, ...rows].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `reservations-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
+  a.href = url; a.download = `reservations-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
   URL.revokeObjectURL(url);
 }
 
-// ── Detail Panel ──────────────────────────────────────────────────────────────
-function ReservationDetailPanel({ reservationId, onClose }: { reservationId: string; onClose: () => void }) {
+function ReservationSettings() {
+  const { reservationSettings, updateReservationSettings, quickControls, updateQuickControls } = useRestaurantStore();
+  const [saved, setSaved] = useState(false);
+
+  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-xl p-5 mb-5 space-y-5">
+      <div className="flex items-center gap-2 mb-1">
+        <Settings2 className="w-4 h-4 text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">Reservation Settings</h3>
+      </div>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* Accept Reservations */}
+        <div className="flex items-start justify-between gap-4 p-3 bg-white/5 rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-foreground">Accept Reservations</p>
+            <p className="text-xs text-foreground/40 mt-0.5">Allow customers to book tables online</p>
+          </div>
+          <Toggle
+            checked={quickControls.acceptReservations}
+            onChange={() => updateQuickControls({ acceptReservations: !quickControls.acceptReservations })}
+          />
+        </div>
+
+        {/* Reservation Payment */}
+        <div className="p-3 bg-white/5 rounded-lg space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Reservation Payment</p>
+              <p className="text-xs text-foreground/40 mt-0.5">Require upfront fee to secure booking</p>
+            </div>
+            <Toggle
+              checked={reservationSettings.requirePayment}
+              onChange={() => updateReservationSettings({ requirePayment: !reservationSettings.requirePayment })}
+            />
+          </div>
+          {reservationSettings.requirePayment && (
+            <div>
+              <label className="text-xs text-foreground/50 mb-1 block">Fee Amount ($)</label>
+              <input
+                type="number"
+                min="1"
+                step="0.01"
+                value={reservationSettings.paymentAmount}
+                onChange={(e) => updateReservationSettings({ paymentAmount: parseFloat(e.target.value) || 0 })}
+                className={inputCls}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Allow Multiple Reservations */}
+        <div className="p-3 bg-white/5 rounded-lg space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Allow Multiple Reservations</p>
+              <p className="text-xs text-foreground/40 mt-0.5">Let customers book more than once per session</p>
+            </div>
+            <Toggle
+              checked={reservationSettings.allowMultiple}
+              onChange={() => updateReservationSettings({ allowMultiple: !reservationSettings.allowMultiple })}
+            />
+          </div>
+          {reservationSettings.allowMultiple && (
+            <div>
+              <label className="text-xs text-foreground/50 mb-1 block">Max Reservations per Session (1–5)</label>
+              <select
+                value={reservationSettings.multipleLimit}
+                onChange={(e) => updateReservationSettings({ multipleLimit: parseInt(e.target.value) })}
+                className="w-full bg-[hsl(15,13%,12%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40"
+              >
+                {[1,2,3,4,5].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Max Party Size */}
+        <div className="p-3 bg-white/5 rounded-lg">
+          <label className="text-xs text-foreground/50 mb-1.5 block">Max Party Size</label>
+          <select
+            value={reservationSettings.maxPartySize}
+            onChange={(e) => updateReservationSettings({ maxPartySize: parseInt(e.target.value) })}
+            className="w-full bg-[hsl(15,13%,12%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40"
+          >
+            {[4,6,8,10,12,15,20].map((n) => <option key={n} value={n}>{n} guests</option>)}
+          </select>
+        </div>
+
+        {/* Advance Notice */}
+        <div className="p-3 bg-white/5 rounded-lg">
+          <label className="text-xs text-foreground/50 mb-1.5 block">Advance Notice Required</label>
+          <select
+            value={reservationSettings.advanceNoticeHours}
+            onChange={(e) => updateReservationSettings({ advanceNoticeHours: parseInt(e.target.value) })}
+            className="w-full bg-[hsl(15,13%,12%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40"
+          >
+            <option value={0}>No notice required</option>
+            <option value={2}>2 hours</option>
+            <option value={4}>4 hours</option>
+            <option value={12}>12 hours</option>
+            <option value={24}>24 hours</option>
+            <option value={48}>48 hours</option>
+          </select>
+        </div>
+
+        {/* Max Advance Days */}
+        <div className="p-3 bg-white/5 rounded-lg">
+          <label className="text-xs text-foreground/50 mb-1.5 block">Book Up to (days in advance)</label>
+          <select
+            value={reservationSettings.maxAdvanceDays}
+            onChange={(e) => updateReservationSettings({ maxAdvanceDays: parseInt(e.target.value) })}
+            className="w-full bg-[hsl(15,13%,12%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40"
+          >
+            {[7,14,30,60,90].map((n) => <option key={n} value={n}>{n} days</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Confirmation message */}
+      <div>
+        <label className="text-xs text-foreground/50 mb-1.5 block">Confirmation Message shown to guests</label>
+        <textarea
+          rows={2}
+          value={reservationSettings.confirmationMessage}
+          onChange={(e) => updateReservationSettings({ confirmationMessage: e.target.value })}
+          className={inputCls + " resize-none"}
+        />
+      </div>
+
+      <button
+        onClick={save}
+        className="px-4 py-2 bg-primary text-black text-sm font-medium rounded-lg hover:bg-primary/80 transition-colors"
+      >
+        {saved ? "Saved!" : "Save Settings"}
+      </button>
+    </div>
+  );
+}
+
+function ReservationDetailPanel({ reservationId, onClose, onPrint }: { reservationId: string; onClose: () => void; onPrint: () => void }) {
   const reservation = useRestaurantStore((s) => s.reservations.find((r) => r.id === reservationId));
   const { updateReservation, updateReservationStatus, deleteReservation } = useRestaurantStore();
 
@@ -90,7 +241,6 @@ function ReservationDetailPanel({ reservationId, onClose }: { reservationId: str
         </button>
       </div>
 
-      {/* Customer Info — editable */}
       <div className="space-y-3">
         <p className="text-xs text-foreground/40 uppercase tracking-widest">Customer Information</p>
         <div>
@@ -109,7 +259,6 @@ function ReservationDetailPanel({ reservationId, onClose }: { reservationId: str
         </div>
       </div>
 
-      {/* Date & Time */}
       <div>
         <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Date & Time</p>
         <div className="grid grid-cols-2 gap-2">
@@ -126,7 +275,6 @@ function ReservationDetailPanel({ reservationId, onClose }: { reservationId: str
         </div>
       </div>
 
-      {/* Guests & Table */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-foreground/40 mb-1 block">Guests</label>
@@ -144,7 +292,6 @@ function ReservationDetailPanel({ reservationId, onClose }: { reservationId: str
         </div>
       </div>
 
-      {/* Occasion */}
       <div>
         <label className="text-xs text-foreground/40 mb-1 block">Occasion</label>
         <select
@@ -162,7 +309,6 @@ function ReservationDetailPanel({ reservationId, onClose }: { reservationId: str
         </select>
       </div>
 
-      {/* Notes */}
       <div>
         <label className="text-xs text-foreground/40 mb-1 block">Special Requests</label>
         <textarea
@@ -174,7 +320,12 @@ function ReservationDetailPanel({ reservationId, onClose }: { reservationId: str
         />
       </div>
 
-      {/* Status */}
+      {reservation.paymentPaid && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 text-xs text-emerald-400">
+          ✓ Reservation fee of ${reservation.paymentAmount?.toFixed(2)} paid
+        </div>
+      )}
+
       <div>
         <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Reservation Status</p>
         <span className={cn("text-xs px-2.5 py-1 rounded-full border font-medium capitalize inline-block", STATUS_STYLES[reservation.status])}>
@@ -182,7 +333,6 @@ function ReservationDetailPanel({ reservationId, onClose }: { reservationId: str
         </span>
       </div>
 
-      {/* Actions */}
       <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
         <button
           onClick={handleSave}
@@ -210,6 +360,13 @@ function ReservationDetailPanel({ reservationId, onClose }: { reservationId: str
         )}
 
         <button
+          onClick={onPrint}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white/5 text-foreground/60 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors"
+        >
+          <Printer className="w-3.5 h-3.5" /> Print Receipt
+        </button>
+
+        <button
           onClick={() => setDeleteOpen(true)}
           className="w-full px-4 py-2 text-red-400 text-sm hover:underline"
         >
@@ -228,7 +385,6 @@ function ReservationDetailPanel({ reservationId, onClose }: { reservationId: str
   );
 }
 
-// ── New Reservation Form ──────────────────────────────────────────────────────
 function NewReservationForm({ onClose }: { onClose: () => void }) {
   const { addReservation } = useRestaurantStore();
   const [name, setName]       = useState("");
@@ -326,16 +482,17 @@ function NewReservationForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdminReservations() {
-  const { reservations } = useRestaurantStore();
-  const [filter,       setFilter]       = useState<StatusFilter>("all");
-  const [selectedId,   setSelectedId]   = useState<string | null>(null);
-  const [showNewForm,  setShowNewForm]  = useState(false);
-  const [dateFilter,   setDateFilter]   = useState<"all" | "today" | "upcoming">("all");
+  const { reservations, resetReservations } = useRestaurantStore();
+  const config = useRestaurantStore((s) => s.config);
+  const [filter,      setFilter]      = useState<StatusFilter>("all");
+  const [selectedId,  setSelectedId]  = useState<string | null>(null);
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [dateFilter,  setDateFilter]  = useState<"all" | "today" | "upcoming">("all");
+  const [printData,   setPrintData]   = useState<ReceiptData | null>(null);
+  const [resetOpen,   setResetOpen]   = useState(false);
 
   const todayStr    = new Date().toISOString().slice(0, 10);
-  const tomorrowStr = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })();
 
   const counts = {
     all:       reservations.length,
@@ -345,9 +502,10 @@ export default function AdminReservations() {
     completed: reservations.filter((r) => r.status === "completed").length,
     cancelled: reservations.filter((r) => r.status === "cancelled").length,
   };
-
   const todaysCount   = reservations.filter((r) => r.date === todayStr).length;
   const upcomingCount = reservations.filter((r) => r.date > todayStr && r.status !== "cancelled").length;
+
+  const allDone = reservations.length > 0 && reservations.every((r) => r.status === "completed" || r.status === "cancelled");
 
   const filtered = reservations
     .filter((r) => filter === "all" || r.status === filter)
@@ -359,9 +517,9 @@ export default function AdminReservations() {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const handleFilterClick = (key: string) => {
-    if (key === "today")    { setDateFilter("today");    setFilter("all"); }
+    if (key === "today")         { setDateFilter("today");    setFilter("all"); }
     else if (key === "upcoming") { setDateFilter("upcoming"); setFilter("all"); }
-    else                    { setDateFilter("all");      setFilter(key as StatusFilter); }
+    else                         { setDateFilter("all");      setFilter(key as StatusFilter); }
   };
 
   const filterButtons = [
@@ -375,12 +533,38 @@ export default function AdminReservations() {
     { key: "cancelled", label: "Cancelled", count: counts.cancelled },
   ];
 
+  const openPrintModal = (r: Reservation) => {
+    const s = useRestaurantStore.getState();
+    setPrintData({
+      type: "reservation",
+      id: r.id,
+      restaurantName: config.name,
+      customerName: r.name,
+      email: r.email,
+      phone: r.phone,
+      date: r.date,
+      time: r.time,
+      guests: r.guests,
+      table: r.table,
+      occasion: r.occasion,
+      reservationFee: r.paymentPaid ? (r.paymentAmount ?? s.reservationSettings.paymentAmount) : 0,
+    });
+  };
+
   return (
     <AdminLayout
       title="Reservations Manager"
       subtitle="View and manage all incoming table bookings"
       actions={
         <div className="flex items-center gap-2 flex-wrap">
+          {allDone && (
+            <button
+              onClick={() => setResetOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs hover:bg-red-500/20 transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" /> Reset Reservations
+            </button>
+          )}
           <button
             onClick={() => exportReservationsCSV(filtered)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 text-foreground/70 rounded-lg text-xs hover:bg-white/10 transition-colors"
@@ -397,10 +581,20 @@ export default function AdminReservations() {
       }
     >
       {showNewForm && <NewReservationForm onClose={() => setShowNewForm(false)} />}
+      {printData && <PrintReceiptModal data={printData} onClose={() => setPrintData(null)} />}
+
+      <ConfirmDialog
+        open={resetOpen}
+        onOpenChange={setResetOpen}
+        title="Reset all reservations?"
+        description="This will permanently delete all reservations. This cannot be undone."
+        onConfirm={() => { resetReservations(); setSelectedId(null); setResetOpen(false); }}
+      />
+
+      <ReservationSettings />
 
       <div className={cn("grid gap-5", selectedId ? "grid-cols-1 xl:grid-cols-3" : "grid-cols-1")}>
         <div className={selectedId ? "xl:col-span-2" : ""}>
-          {/* Filters */}
           <div className="flex gap-1.5 flex-wrap mb-4">
             {filterButtons.map(({ key, label, count }) => {
               const isActive =
@@ -425,7 +619,6 @@ export default function AdminReservations() {
             })}
           </div>
 
-          {/* Table */}
           <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
             <div className="grid grid-cols-[1.5fr_1fr_0.7fr_0.7fr_0.7fr_0.9fr_0.8fr] text-xs text-foreground/40 uppercase tracking-widest px-4 py-3 border-b border-white/10 hidden lg:grid">
               <span>Customer</span>
@@ -440,7 +633,7 @@ export default function AdminReservations() {
             {filtered.length === 0 && (
               <div className="text-center py-14 text-foreground/30 text-sm flex flex-col items-center gap-3">
                 <Clock className="w-8 h-8 opacity-30" />
-                No reservations found.
+                {reservations.length === 0 ? "No reservations yet. Bookings from the customer site will appear here." : "No reservations match this filter."}
               </div>
             )}
 
@@ -473,22 +666,41 @@ export default function AdminReservations() {
                     <Eye className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    onClick={() => setSelectedId(r.id)}
+                    onClick={() => openPrintModal(r)}
                     className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
-                    title="Edit"
+                    title="Print receipt"
                   >
-                    <Pencil className="w-3.5 h-3.5" />
+                    <Printer className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
             ))}
           </div>
+
+          {selectedId && (
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => {
+                  const r = reservations.find((r) => r.id === selectedId);
+                  if (r) openPrintModal(r);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-foreground/60 rounded-lg text-sm hover:bg-white/10 transition-colors"
+              >
+                <Printer className="w-4 h-4" /> Print Selected Receipt
+              </button>
+            </div>
+          )}
         </div>
 
         {selectedId && (
-          <div>
-            <ReservationDetailPanel reservationId={selectedId} onClose={() => setSelectedId(null)} />
-          </div>
+          <ReservationDetailPanel
+            reservationId={selectedId}
+            onClose={() => setSelectedId(null)}
+            onPrint={() => {
+              const r = reservations.find((r) => r.id === selectedId);
+              if (r) openPrintModal(r);
+            }}
+          />
         )}
       </div>
     </AdminLayout>

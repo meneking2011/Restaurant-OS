@@ -10,6 +10,7 @@ import { useRestaurantStore } from "@/store/restaurantStore";
 import { Wrench } from "lucide-react";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
+const CustomPageView = lazy(() => import("@/pages/CustomPageView"));
 const MenuPage = lazy(() => import("@/pages/MenuPage"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const ServicesPage = lazy(() => import("@/pages/ServicesPage"));
@@ -107,6 +108,10 @@ function Router() {
         <Route path="/admin/testimonials" component={AdminTestimonials} />
         <Route path="/admin/analytics" component={AdminAnalytics} />
         <Route path="/admin/settings" component={AdminSettings} />
+
+        <Route path="/pages/:slug">
+          {(params) => <CustomPageView slug={params.slug ?? ""} />}
+        </Route>
 
         <Route component={NotFound} />
       </Switch>
