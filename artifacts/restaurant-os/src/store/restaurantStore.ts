@@ -197,7 +197,7 @@ interface RestaurantStore {
   updateGalleryImage: (id: string, image: Partial<GalleryImage>) => void;
   deleteGalleryImage: (id: string) => void;
 
-  addOrder: (order: Omit<Order, "id" | "status" | "orderedAt">) => void;
+  addOrder: (order: Omit<Order, "id" | "status" | "orderedAt">) => string;
   updateOrderStatus: (id: string, status: Order["status"]) => void;
   cancelOrder: (id: string) => void;
   resetOrders: () => void;
@@ -390,16 +390,17 @@ export const useRestaurantStore = create<RestaurantStore>()(
         });
       },
 
-      addOrder: (order) => set((s) => {
+      addOrder: (order) => {
         const newOrder: Order = { ...order, id: `ord-${generateId("o")}`, status: "new" as const, orderedAt: new Date().toISOString() };
-        return {
+        set((s) => ({
           orders: [...s.orders, newOrder],
           activityLog: [
             { id: generateId("al"), message: "New Order", detail: `Order from ${order.customerName} — ${order.items.length} item(s)`, timestamp: new Date().toISOString() },
             ...s.activityLog.slice(0, 49),
           ],
-        };
-      }),
+        }));
+        return newOrder.id;
+      },
       updateOrderStatus: (id, status) => set((s) => ({
         orders: s.orders.map((o) => o.id === id ? { ...o, status } : o),
         activityLog: status !== "new" ? [

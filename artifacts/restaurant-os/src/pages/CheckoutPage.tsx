@@ -8,15 +8,28 @@ import { useRestaurantStore } from "@/store/restaurantStore";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { ImageComponent } from "@/components/ui/ImageComponent";
 import { Link } from "wouter";
-import { Minus, Plus, Trash2, CreditCard, Building, ShoppingBag } from "lucide-react";
+import { Minus, Plus, Trash2, CreditCard, Building, ShoppingBag, Clock, ChefHat, PackageCheck, CheckCircle2, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
+
+// Tracks the visitor's own active order for the lifetime of this browser tab.
+// sessionStorage clears automatically when the tab/page is fully closed, so
+// the order stays visible across in-app navigation but not across a fresh visit.
+const ACTIVE_ORDER_KEY = "ros_active_order_id";
+
+const STATUS_META: Record<string, { label: string; icon: typeof Clock; color: string }> = {
+  new:       { label: "Order Received",  icon: Clock,          color: "text-primary" },
+  preparing: { label: "Being Prepared",  icon: ChefHat,        color: "text-amber-400" },
+  ready:     { label: "Ready",           icon: PackageCheck,   color: "text-emerald-400" },
+  completed: { label: "Completed",       icon: CheckCircle2,   color: "text-emerald-400" },
+  cancelled: { label: "Cancelled",       icon: XCircle,        color: "text-red-400" },
+};
 
 export default function CheckoutPage() {
   const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
-  const { addOrder, quickControls, config, deliverySettings } = useRestaurantStore();
+  const { addOrder, quickControls, config, deliverySettings, orders } = useRestaurantStore();
   const [paymentMethod, setPaymentMethod] = useState<"card" | "bank">("card");
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [orderId, setOrderId] = useState("");
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(() => sessionStorage.getItem(ACTIVE_ORDER_KEY));
+  const [customerName, setCustomerName] = useState("");
 
   // Form fields
   const [name, setName] = useState("");
@@ -29,6 +42,11 @@ export default function CheckoutPage() {
   useEffect(() => {
     document.title = `Checkout | ${config.name}`;
   }, [config.name]);
+
+  // The order this visitor placed, kept alive in sessionStorage. It stays
+  // visible whenever they return to this page in the same tab, and reflects
+  // live status updates made from the admin panel.
+  const activeOrder = activeOrderId ? orders.find((o) => o.id === activeOrderId) ?? null : null;
 
   const taxRate     = deliverySettings?.taxRate     ?? 0.08;
   const feeAmount   = deliverySettings?.fee         ?? 15;
@@ -48,8 +66,7 @@ export default function CheckoutPage() {
     }
     setFormError("");
 
-    const newOrderId = `ord-${Date.now()}`;
-    addOrder({
+    const newOrderId = addOrder({
       customerName: name.trim(),
       email: email.trim(),
       phone: phone.trim(),
@@ -68,9 +85,10 @@ export default function CheckoutPage() {
       totalAmount: total,
     });
 
-    setOrderId(newOrderId);
+    sessionStorage.setItem(ACTIVE_ORDER_KEY, newOrderId);
+    setActiveOrderId(newOrderId);
+    setCustomerName(name.trim());
     clearCart();
-    setIsSuccess(true);
     window.scrollTo(0, 0);
   };
 
@@ -102,7 +120,12 @@ export default function CheckoutPage() {
     );
   }
 
-  if (isSuccess) {
+  // This visitor has an active order for this browser tab — keep showing its
+  // live status (even across in-app navigation) until they close the page.
+  if (activeOrder) {
+    const meta = STATUS_META[activeOrder.status];
+    const StatusIcon = meta.icon;
+    const isFinal = activeOrder.status === "completed" || activeOrder.status === "cancelled";
     return (
       <Layout>
         <SectionContainer className="bg-background pt-12 md:pt-24 min-h-[70vh] flex flex-col items-center justify-center">
@@ -112,23 +135,28 @@ export default function CheckoutPage() {
             className="text-center bg-card p-12 border border-border rounded-sm max-w-2xl w-full"
           >
             <div className="w-24 h-24 border-2 border-primary rounded-full flex items-center justify-center mx-auto mb-8">
-              <span className="text-primary text-4xl">✓</span>
+              <StatusIcon className={`w-10 h-10 ${meta.color}`} />
             </div>
-            <h1 className="font-serif text-3xl md:text-5xl uppercase tracking-widest mb-6">
-              Order Confirmed
+            <h1 className="font-serif text-3xl md:text-5xl uppercase tracking-widest mb-4">
+              {activeOrder.status === "cancelled" ? "Order Cancelled" : "Order Confirmed"}
             </h1>
+            <p className={`text-sm uppercase tracking-widest font-medium mb-6 ${meta.color}`}>
+              {meta.label}
+            </p>
             <p className="text-muted-foreground text-lg mb-3 leading-relaxed">
-              Thank you, {name}. Your order has been received and is being prepared by our culinary team.
+              Thank you, {customerName || activeOrder.customerName}. Your order #{activeOrder.id.replace("ord-", "").slice(0, 8)} totals {formatCurrency(activeOrder.totalAmount)}.
             </p>
             <p className="text-muted-foreground text-sm mb-8">
-              A confirmation will be sent to <span className="text-primary">{email}</span>.
+              A confirmation will be sent to <span className="text-primary">{activeOrder.email}</span>. This page will keep showing your order status until you close it.
             </p>
-            <Button
-              asChild
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none uppercase tracking-widest px-10 h-14"
-            >
-              <Link href="/menu">Return to Menu</Link>
-            </Button>
+            {isFinal && (
+              <Button
+                onClick={() => { sessionStorage.removeItem(ACTIVE_ORDER_KEY); setActiveOrderId(null); }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none uppercase tracking-widest px-10 h-14"
+              >
+                Place a New Order
+              </Button>
+            )}
           </motion.div>
         </SectionContainer>
       </Layout>

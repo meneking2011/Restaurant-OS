@@ -8,7 +8,7 @@ import { AdminLayout } from "../layout/AdminLayout";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import {
-  Plus, Pencil, Trash2, X, Check, Eye, EyeOff, Upload, Star, Search, Filter
+  Plus, Pencil, Trash2, X, Check, Eye, EyeOff, Upload, Star, Search, Filter, PencilLine
 } from "lucide-react";
 
 const menuSchema = z.object({
@@ -272,6 +272,7 @@ export default function AdminMenu() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [search,        setSearch]       = useState("");
+  const [editMode,      setEditMode]     = useState(false);
 
   const categoryCounts: Record<string, number> = {
     all:      menuItems.length,
@@ -313,6 +314,18 @@ export default function AdminMenu() {
             />
           </div>
           <button
+            onClick={() => { setEditMode((v) => !v); setEditingId(null); }}
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors border",
+              editMode
+                ? "bg-emerald-500/15 text-emerald-400 border-emerald-400/30 hover:bg-emerald-500/25"
+                : "bg-white/5 text-foreground/70 border-white/10 hover:bg-white/10"
+            )}
+          >
+            {editMode ? <Check className="w-3.5 h-3.5" /> : <PencilLine className="w-3.5 h-3.5" />}
+            {editMode ? "Apply Changes" : "Edit Menu"}
+          </button>
+          <button
             onClick={() => { setAdding(true); setEditingId(null); }}
             className="flex items-center gap-1.5 px-4 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors"
           >
@@ -321,6 +334,13 @@ export default function AdminMenu() {
         </div>
       }
     >
+      {editMode && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-primary/10 border border-primary/20 rounded-lg text-sm text-primary">
+          <PencilLine className="w-3.5 h-3.5 shrink-0" />
+          Edit mode is on — select any item below to edit it, then click "Apply Changes" when you're done.
+        </div>
+      )}
+
       {adding && (
         <div className="mb-5">
           <MenuItemForm
@@ -432,27 +452,29 @@ export default function AdminMenu() {
                 <p className="text-lg font-semibold text-primary">${item.price.toFixed(2)}</p>
               </div>
 
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <button
-                  onClick={() => updateMenuItem(item.id, { available: !item.available })}
-                  className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/50 hover:text-foreground transition-colors"
-                  title={item.available ? "Mark unavailable" : "Mark available"}
-                >
-                  {item.available ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                </button>
-                <button
-                  onClick={() => { setEditingId(item.id); setAdding(false); }}
-                  className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/50 hover:text-foreground transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setDeleteTarget(item.id)}
-                  className="p-1.5 rounded-lg hover:bg-red-400/10 text-foreground/50 hover:text-red-400 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              {editMode && (
+                <div className="flex gap-1 shrink-0">
+                  <button
+                    onClick={() => updateMenuItem(item.id, { available: !item.available })}
+                    className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/50 hover:text-foreground transition-colors"
+                    title={item.available ? "Mark unavailable" : "Mark available"}
+                  >
+                    {item.available ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    onClick={() => { setEditingId(item.id); setAdding(false); }}
+                    className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/50 hover:text-foreground transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(item.id)}
+                    className="p-1.5 rounded-lg hover:bg-red-400/10 text-foreground/50 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           )
         )}

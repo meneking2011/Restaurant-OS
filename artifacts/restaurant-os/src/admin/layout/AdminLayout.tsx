@@ -33,7 +33,7 @@ function NotificationsPanel({ onClose }: { onClose: () => void }) {
   const preparingOrders = orders.filter((o) => o.status === "preparing");
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 bg-[hsl(15,13%,9%)] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+    <div className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-16 sm:top-full sm:mt-2 w-auto sm:w-80 max-w-sm bg-[hsl(15,13%,9%)] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <p className="text-sm font-semibold text-foreground">Notifications</p>
         <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors">
