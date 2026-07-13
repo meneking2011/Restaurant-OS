@@ -149,29 +149,9 @@ export const services: Service[] = [
   }
 ];
 
-export const testimonials: Testimonial[] = [
-  {
-    id: "t1",
-    name: "Eleanor V.",
-    text: "An unforgettable evening. The Wagyu was flawless, and the ambiance made us feel entirely insulated from the outside world.",
-    rating: 5,
-    date: "2024-09-12"
-  },
-  {
-    id: "t2",
-    name: "Marcus T.",
-    text: "Reassurance lives up to its name. The service is attentive but never intrusive, and the wine pairings were spectacular.",
-    rating: 5,
-    date: "2024-10-05"
-  },
-  {
-    id: "t3",
-    name: "Sophia L.",
-    text: "The chocolate avocado mousse is a revelation. I will be dreaming of this meal for months to come.",
-    rating: 5,
-    date: "2024-11-20"
-  }
-];
+// No seeded/demo reviews — testimonials are populated exclusively by real
+// guest submissions (see TestimonialsSection's review form) or by the admin.
+export const testimonials: Testimonial[] = [];
 
 export const galleryImages: GalleryImage[] = [
   { id: "g1", src: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80", alt: "Elegant table setting with candlelight", category: "Ambiance" },

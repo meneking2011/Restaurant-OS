@@ -1,3 +1,3 @@
 - [RestaurantOS RCC architecture](rcc-architecture.md) — full admin panel structure, CSS var format, store keys, and routing conventions
 - [Store extensions](store-extensions.md) — deliverySettings, reservationSettings, navLinks added to store; CheckoutPage must read these, not hardcode values
-- [RestaurantOS artifact not registered](restaurant-os-artifact-registration.md) — listArtifacts() empty, no managed workflow; use externalUrl screenshot + manual workflow as stopgap
+- [RestaurantOS notification/gating patterns](restaurant-os-patterns.md) — activityLog-as-notifications convention, closed-state page gating, keyless map embeds

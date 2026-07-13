@@ -143,8 +143,9 @@ export default function ReservationsPage() {
     setStep("form");
   };
 
-  // Reservations disabled
-  if (!quickControls.acceptReservations) {
+  // Restaurant closed, or reservations disabled
+  if (!quickControls.restaurantOpen || !quickControls.acceptReservations) {
+    const closedForBusiness = !quickControls.restaurantOpen;
     return (
       <Layout>
         <SectionContainer className="bg-background pt-12 md:pt-24 min-h-[70vh] flex flex-col items-center justify-center">
@@ -156,9 +157,13 @@ export default function ReservationsPage() {
             <div className="w-20 h-20 border border-border rounded-full flex items-center justify-center mx-auto mb-8">
               <CalendarX className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h1 className="font-serif text-3xl md:text-4xl uppercase tracking-widest mb-4">Reservations Paused</h1>
+            <h1 className="font-serif text-3xl md:text-4xl uppercase tracking-widest mb-4">
+              {closedForBusiness ? "We're Currently Closed" : "Reservations Paused"}
+            </h1>
             <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-              We are not accepting reservations online at this time. Please call us directly to book a table.
+              {closedForBusiness
+                ? "We are closed right now and not accepting reservations. Please check back during our opening hours to book a table."
+                : "We are not accepting reservations online at this time. Please call us directly to book a table."}
             </p>
             <Button asChild variant="outline" className="rounded-none tracking-widest uppercase border-primary text-primary hover:bg-primary hover:text-primary-foreground">
               <Link href="/contact">Contact Us</Link>

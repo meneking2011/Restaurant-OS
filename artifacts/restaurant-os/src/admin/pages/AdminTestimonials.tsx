@@ -151,7 +151,7 @@ export default function AdminTestimonials() {
                   </div>
                   <p className="text-sm text-foreground/70 leading-relaxed italic">"{t.text}"</p>
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
+                <div className="flex gap-1 ml-4">
                   <button
                     onClick={() => { setEditingId(t.id); setAdding(false); }}
                     className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/50 hover:text-foreground transition-colors"

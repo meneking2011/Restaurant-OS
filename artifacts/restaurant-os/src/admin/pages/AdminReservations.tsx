@@ -4,7 +4,7 @@ import { AdminLayout } from "../layout/AdminLayout";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PrintReceiptModal, ReceiptData } from "../components/PrintReceiptModal";
-import { CalendarCheck, Download, Plus, Eye, X, Check, Clock, Printer, RotateCcw, Settings2 } from "lucide-react";
+import { CalendarCheck, Download, Plus, Eye, X, Check, Clock, Printer, RotateCcw, Settings2, ChevronDown } from "lucide-react";
 
 type StatusFilter = "all" | "pending" | "confirmed" | "seated" | "completed" | "cancelled";
 
@@ -63,16 +63,27 @@ function exportReservationsCSV(reservations: Reservation[]) {
 function ReservationSettings() {
   const { reservationSettings, updateReservationSettings, quickControls, updateQuickControls } = useRestaurantStore();
   const [saved, setSaved] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-5 mb-5 space-y-5">
-      <div className="flex items-center gap-2 mb-1">
-        <Settings2 className="w-4 h-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">Reservation Settings</h3>
-      </div>
+    <div className="bg-white/5 border border-white/10 rounded-xl mb-5 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 p-5 text-left"
+        aria-expanded={expanded}
+      >
+        <div className="flex items-center gap-2">
+          <Settings2 className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Reservation Settings</h3>
+        </div>
+        <ChevronDown className={cn("w-4 h-4 text-foreground/40 transition-transform", expanded && "rotate-180")} />
+      </button>
 
+      {expanded && (
+      <div className="px-5 pb-5 space-y-5">
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Accept Reservations */}
         <div className="flex items-start justify-between gap-4 p-3 bg-white/5 rounded-lg">
@@ -198,6 +209,8 @@ function ReservationSettings() {
       >
         {saved ? "Saved!" : "Save Settings"}
       </button>
+      </div>
+      )}
     </div>
   );
 }

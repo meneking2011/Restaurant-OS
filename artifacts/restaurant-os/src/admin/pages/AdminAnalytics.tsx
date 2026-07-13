@@ -12,14 +12,30 @@ import {
 import { formatCurrency } from "@/utils/formatCurrency";
 import { cn } from "@/lib/utils";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const MOCK_VISITS = [120, 145, 98, 210, 340, 480, 390];
-const MOCK_ORDERS = [4, 6, 3, 9, 14, 20, 16];
-const maxVisit = Math.max(...MOCK_VISITS);
-const maxOrder = Math.max(...MOCK_ORDERS);
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Builds the last 7 calendar days (oldest → newest) as ISO date keys + labels,
+// so the charts always reflect the current week rather than a fixed demo set.
+function lastSevenDays() {
+  const days: { key: string; label: string }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push({ key: d.toISOString().slice(0, 10), label: DAY_LABELS[d.getDay()] });
+  }
+  return days;
+}
 
 export default function AdminAnalytics() {
-  const { orders, reservations, testimonials } = useRestaurantStore();
+  const { orders, reservations, testimonials, visitLog } = useRestaurantStore();
+
+  const days = lastSevenDays();
+
+  const ordersPerDay = days.map(({ key }) => orders.filter((o) => o.orderedAt.slice(0, 10) === key).length);
+  const visitsPerDay = days.map(({ key }) => visitLog.filter((v) => v.slice(0, 10) === key).length);
+  const maxOrder = Math.max(1, ...ordersPerDay);
+  const maxVisit = Math.max(1, ...visitsPerDay);
+  const totalVisitsThisWeek = visitsPerDay.reduce((a, b) => a + b, 0);
 
   const totalRevenue = orders
     .filter((o) => o.status === "completed")
@@ -42,7 +58,7 @@ export default function AdminAnalytics() {
   return (
     <AdminLayout
       title="Analytics"
-      subtitle="Performance overview — last 7 days (demo data)"
+      subtitle="Performance overview — live data from the last 7 days"
     >
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         <StatCard
@@ -81,16 +97,16 @@ export default function AdminAnalytics() {
             <TrendingUp className="w-4 h-4 text-primary" />
             Website Visits (This Week)
           </h2>
-          <p className="text-xs text-foreground/40 mb-5">Demo data — connect analytics to see live numbers</p>
+          <p className="text-xs text-foreground/40 mb-5">{totalVisitsThisWeek} visits tracked in the last 7 days</p>
           <div className="flex items-end gap-2 h-40">
-            {MOCK_VISITS.map((v, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+            {visitsPerDay.map((v, i) => (
+              <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1">
                 <span className="text-[10px] text-foreground/40">{v}</span>
                 <div
-                  className="w-full rounded-t-sm bg-primary/30 hover:bg-primary/50 transition-colors"
+                  className="w-full rounded-t-sm bg-primary/30 hover:bg-primary/50 transition-colors min-h-[2px]"
                   style={{ height: `${(v / maxVisit) * 100}%` }}
                 />
-                <span className="text-[10px] text-foreground/40">{DAYS[i]}</span>
+                <span className="text-[10px] text-foreground/40">{days[i].label}</span>
               </div>
             ))}
           </div>
@@ -101,16 +117,16 @@ export default function AdminAnalytics() {
             <ShoppingBag className="w-4 h-4 text-primary" />
             Orders Per Day (This Week)
           </h2>
-          <p className="text-xs text-foreground/40 mb-5">Demo data</p>
+          <p className="text-xs text-foreground/40 mb-5">Live count of real orders placed each day</p>
           <div className="flex items-end gap-2 h-40">
-            {MOCK_ORDERS.map((v, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+            {ordersPerDay.map((v, i) => (
+              <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1">
                 <span className="text-[10px] text-foreground/40">{v}</span>
                 <div
-                  className="w-full rounded-t-sm bg-emerald-500/30 hover:bg-emerald-500/50 transition-colors"
+                  className="w-full rounded-t-sm bg-emerald-500/30 hover:bg-emerald-500/50 transition-colors min-h-[2px]"
                   style={{ height: `${(v / maxOrder) * 100}%` }}
                 />
-                <span className="text-[10px] text-foreground/40">{DAYS[i]}</span>
+                <span className="text-[10px] text-foreground/40">{days[i].label}</span>
               </div>
             ))}
           </div>

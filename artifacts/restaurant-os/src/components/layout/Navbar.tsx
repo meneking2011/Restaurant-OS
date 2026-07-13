@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Flame, Menu as MenuIcon } from "lucide-react";
 import { useRestaurantStore } from "@/store/restaurantStore";
+import { useCartStore } from "@/store/cartStore";
 import { cn } from "@/utils/cn";
 import { HamburgerMenu } from "./HamburgerMenu";
 
@@ -17,6 +18,7 @@ const PAGE_NAMES: Record<string, string> = {
 
 export function Navbar() {
   const { config } = useRestaurantStore();
+  const itemCount = useCartStore((state) => state.getItemCount());
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [location] = useLocation();
@@ -55,11 +57,19 @@ export function Navbar() {
 
           <button
             onClick={() => setMenuOpen(true)}
-            className="text-foreground hover:text-primary transition-colors focus:outline-none p-2"
+            className="relative text-foreground hover:text-primary transition-colors focus:outline-none p-2"
             aria-label="Open menu"
             data-testid="button-open-menu"
           >
             <MenuIcon className="w-7 h-7" />
+            {itemCount > 0 && (
+              <span
+                className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center leading-none"
+                data-testid="badge-cart-count"
+              >
+                {itemCount}
+              </span>
+            )}
           </button>
         </div>
       </header>

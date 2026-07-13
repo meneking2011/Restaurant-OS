@@ -3,19 +3,32 @@ import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
+import { useRestaurantStore } from "@/store/restaurantStore";
 
 interface LayoutProps {
   children: ReactNode;
   hideFooter?: boolean;
 }
 
+const VISIT_SESSION_KEY = "ros_visit_logged";
+
 export function Layout({ children, hideFooter = false }: LayoutProps) {
   const [location] = useLocation();
+  const logVisit = useRestaurantStore((s) => s.logVisit);
 
   // Scroll to top on route change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
+
+  // Record one real site visit per browser session (not per page nav) so
+  // Admin Analytics can show live, recent traffic instead of demo numbers.
+  useEffect(() => {
+    if (!sessionStorage.getItem(VISIT_SESSION_KEY)) {
+      sessionStorage.setItem(VISIT_SESSION_KEY, "1");
+      logVisit();
+    }
+  }, [logVisit]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground font-sans">

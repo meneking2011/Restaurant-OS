@@ -3,7 +3,7 @@ export interface RestaurantConfig {
   name: string;
   tagline: string;
   description: string;
-  address: { street: string; city: string; state: string; zip: string; country: string };
+  address: { street: string; city: string; state: string; zip: string; country: string; lat?: number; lng?: number };
   phone: string;
   email: string;
   openingHours: { day: string; hours: string }[];

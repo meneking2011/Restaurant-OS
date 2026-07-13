@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { AdminLayout } from "../layout/AdminLayout";
-import { Save, Truck, CalendarCheck } from "lucide-react";
+import { Save, Truck, CalendarCheck, MapPin, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = ["Branding", "Contact", "Business Hours", "Social Media", "Delivery", "Reservations"] as const;
@@ -185,6 +185,8 @@ const contactSchema = z.object({
 function ContactTab() {
   const { config, updateConfig } = useRestaurantStore();
   const [saved, setSaved] = useState(false);
+  const [lat, setLat] = useState(config.address.lat != null ? String(config.address.lat) : "");
+  const [lng, setLng] = useState(config.address.lng != null ? String(config.address.lng) : "");
   const {
     register,
     handleSubmit,
@@ -211,11 +213,20 @@ function ContactTab() {
         state:   data.state,
         zip:     data.zip,
         country: data.country,
+        lat: lat ? parseFloat(lat) : undefined,
+        lng: lng ? parseFloat(lng) : undefined,
       },
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
+
+  const fullAddress = `${config.address.street}, ${config.address.city}, ${config.address.state} ${config.address.zip}, ${config.address.country}`;
+  const hasCoords = lat.trim() !== "" && lng.trim() !== "" && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng));
+  const mapsSearchUrl = hasCoords
+    ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
       <div className="grid sm:grid-cols-2 gap-4">
@@ -243,6 +254,62 @@ function ContactTab() {
           <input {...register("country")} className={inputCls} />
         </Field>
       </div>
+
+      <div className="pt-4 border-t border-white/10 space-y-3">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Map Pin Location</h3>
+        </div>
+        <p className="text-xs text-foreground/40">
+          Pinpoint your exact location so guests get a live map preview and accurate directions on the "Locate Us" page.
+          Find your coordinates by right-clicking your spot on{" "}
+          <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
+            Google Maps <ExternalLink className="w-3 h-3" />
+          </a>{" "}
+          and copying the two numbers shown.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Latitude">
+            <input
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+              placeholder="e.g. 40.7128"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Longitude">
+            <input
+              value={lng}
+              onChange={(e) => setLng(e.target.value)}
+              placeholder="e.g. -74.0060"
+              className={inputCls}
+            />
+          </Field>
+        </div>
+
+        {hasCoords && (
+          <div className="rounded-lg overflow-hidden border border-white/10 h-56">
+            <iframe
+              title="Location preview"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(lng) - 0.01}%2C${parseFloat(lat) - 0.01}%2C${parseFloat(lng) + 0.01}%2C${parseFloat(lat) + 0.01}&layer=mapnik&marker=${lat}%2C${lng}`}
+            />
+          </div>
+        )}
+
+        <a
+          href={mapsSearchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+        >
+          Preview on Google Maps <ExternalLink className="w-3 h-3" />
+        </a>
+      </div>
+
       <button
         type="submit"
         className="flex items-center gap-1.5 px-4 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors"

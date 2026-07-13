@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { motion, AnimatePresence } from "framer-motion";
+import { Phone as PhoneIcon, Mail as MailIcon } from "lucide-react";
 
 const contactSchema = z.object({
   name: z.string().min(2, { message: "Name is required" }),
@@ -23,8 +24,9 @@ const contactSchema = z.object({
 type ContactFormValues = z.infer<typeof contactSchema>;
 
 export default function ContactPage() {
-  const { config } = useRestaurantStore();
+  const { config, addActivityLog } = useRestaurantStore();
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedData, setSubmittedData] = useState<ContactFormValues | null>(null);
 
   useEffect(() => {
     document.title = "Contact | Reassurance";
@@ -41,9 +43,25 @@ export default function ContactPage() {
   });
 
   const onSubmit = (data: ContactFormValues) => {
-    // Form submission handled — integrate with backend/email service when available
+    setSubmittedData(data);
+    addActivityLog({
+      message: "New Contact Message",
+      detail: `${data.name} — "${data.subject}"`,
+    });
     setIsSubmitted(true);
   };
+
+  const gmailComposeUrl = submittedData
+    ? `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(config.email)}&su=${encodeURIComponent(submittedData.subject)}&body=${encodeURIComponent(
+        `${submittedData.message}\n\n— ${submittedData.name} (${submittedData.email})`
+      )}`
+    : "#";
+
+  const smsHref = submittedData
+    ? `sms:${config.phone.replace(/[^\d+]/g, "")}?body=${encodeURIComponent(
+        `Hi, this is ${submittedData.name}. ${submittedData.message}`
+      )}`
+    : "#";
 
   return (
     <Layout>
@@ -117,14 +135,36 @@ export default function ContactPage() {
                     <span className="text-primary text-2xl">✓</span>
                   </div>
                   <h3 className="font-serif text-3xl uppercase tracking-widest mb-4">Message Received</h3>
-                  <p className="text-muted-foreground">
-                    Thank you for reaching out. A member of our concierge team will respond to your inquiry shortly.
+                  <p className="text-muted-foreground mb-8">
+                    Thank you for reaching out. Our team has been notified — you can also reach us directly right now:
                   </p>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                    <Button
+                      asChild
+                      className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 rounded-none tracking-widest uppercase h-12"
+                      data-testid="button-send-via-phone"
+                    >
+                      <a href={smsHref}>
+                        <PhoneIcon className="w-4 h-4 mr-2" /> Send via Phone
+                      </a>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="flex-1 rounded-none tracking-widest uppercase border-primary text-primary hover:bg-primary hover:text-primary-foreground h-12"
+                      data-testid="button-send-via-email"
+                    >
+                      <a href={gmailComposeUrl} target="_blank" rel="noopener noreferrer">
+                        <MailIcon className="w-4 h-4 mr-2" /> Send via Gmail
+                      </a>
+                    </Button>
+                  </div>
                   <Button 
-                    variant="outline" 
-                    className="mt-8 rounded-none tracking-widest uppercase border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                    variant="ghost" 
+                    className="mt-6 rounded-none tracking-widest uppercase text-muted-foreground hover:text-primary"
                     onClick={() => {
                       form.reset();
+                      setSubmittedData(null);
                       setIsSubmitted(false);
                     }}
                   >

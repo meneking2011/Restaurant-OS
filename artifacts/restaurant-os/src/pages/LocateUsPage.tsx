@@ -11,6 +11,16 @@ export default function LocateUsPage() {
     document.title = "Locate Us | Reassurance";
   }, []);
 
+  const { lat, lng } = config.address;
+  const hasCoords = lat != null && lng != null;
+  const fullAddress = `${config.address.street}, ${config.address.city}, ${config.address.state} ${config.address.zip}, ${config.address.country}`;
+  const mapsUrl = hasCoords
+    ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+  const embedUrl = hasCoords
+    ? `https://www.openstreetmap.org/export/embed.html?bbox=${lng! - 0.01}%2C${lat! - 0.01}%2C${lng! + 0.01}%2C${lat! + 0.01}&layer=mapnik&marker=${lat}%2C${lng}`
+    : null;
+
   return (
     <Layout>
       <SectionContainer className="bg-background pt-12 md:pt-20">
@@ -32,11 +42,14 @@ export default function LocateUsPage() {
               </p>
               
               <Button 
+                asChild
                 className="bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground tracking-widest uppercase rounded-none py-6 px-8 flex gap-3 w-full sm:w-auto"
                 data-testid="button-find-on-map"
               >
-                <MapPin className="w-5 h-5" />
-                Find Us On Map
+                <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
+                  <MapPin className="w-5 h-5" />
+                  {hasCoords ? "Get Directions" : "Find Us On Map"}
+                </a>
               </Button>
             </div>
 
@@ -67,22 +80,35 @@ export default function LocateUsPage() {
             </div>
           </div>
 
-          {/* Map Side (Placeholder) */}
-          <div className="w-full h-[500px] lg:h-full min-h-[400px] bg-card border border-border flex flex-col items-center justify-center relative overflow-hidden rounded-sm group">
-            {/* Map styling mock */}
-            <div className="absolute inset-0 opacity-20" style={{
-              backgroundImage: 'url("https://www.transparenttextures.com/patterns/cubes.png")'
-            }}></div>
-            <div className="relative z-10 flex flex-col items-center gap-4 text-center p-6">
-              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
-                <MapPin className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="font-serif text-2xl uppercase tracking-widest text-primary">Interactive Map</h3>
-              <p className="text-muted-foreground text-sm max-w-[250px]">
-                Click the "Find Us On Map" button to open Google Maps navigation.
-              </p>
+          {/* Map Side */}
+          {embedUrl ? (
+            <div className="w-full h-[500px] lg:h-full min-h-[400px] bg-card border border-border rounded-sm overflow-hidden">
+              <iframe
+                title="Our location"
+                src={embedUrl}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                data-testid="iframe-location-map"
+              />
             </div>
-          </div>
+          ) : (
+            <div className="w-full h-[500px] lg:h-full min-h-[400px] bg-card border border-border flex flex-col items-center justify-center relative overflow-hidden rounded-sm group">
+              <div className="absolute inset-0 opacity-20" style={{
+                backgroundImage: 'url("https://www.transparenttextures.com/patterns/cubes.png")'
+              }}></div>
+              <div className="relative z-10 flex flex-col items-center gap-4 text-center p-6">
+                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
+                  <MapPin className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="font-serif text-2xl uppercase tracking-widest text-primary">Interactive Map</h3>
+                <p className="text-muted-foreground text-sm max-w-[250px]">
+                  Click the "Find Us On Map" button to open Google Maps navigation.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </SectionContainer>
     </Layout>

@@ -92,8 +92,9 @@ export default function CheckoutPage() {
     window.scrollTo(0, 0);
   };
 
-  // Online orders disabled
-  if (!quickControls.onlineOrders) {
+  // Restaurant closed, or online orders disabled
+  if (!quickControls.restaurantOpen || !quickControls.onlineOrders) {
+    const closedForBusiness = !quickControls.restaurantOpen;
     return (
       <Layout>
         <SectionContainer className="bg-background pt-12 md:pt-24 min-h-[70vh] flex flex-col items-center justify-center">
@@ -106,10 +107,12 @@ export default function CheckoutPage() {
               <ShoppingBag className="w-8 h-8 text-muted-foreground" />
             </div>
             <h1 className="font-serif text-3xl md:text-4xl uppercase tracking-widest mb-4">
-              Online Orders Paused
+              {closedForBusiness ? "We're Currently Closed" : "Online Orders Paused"}
             </h1>
             <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-              We are not accepting online orders at this time. Please call us or visit in person.
+              {closedForBusiness
+                ? "We are closed right now and not accepting online orders. Please check back during our opening hours to order."
+                : "We are not accepting online orders at this time. Please call us or visit in person."}
             </p>
             <Button asChild variant="outline" className="rounded-none tracking-widest uppercase border-primary text-primary hover:bg-primary hover:text-primary-foreground">
               <Link href="/contact">Contact Us</Link>

@@ -162,6 +162,7 @@ interface RestaurantStore {
   deliverySettings: DeliverySettings;
   reservationSettings: ReservationSettings;
   customPages: CustomPage[];
+  visitLog: string[];
 
   _historyPast: StoreSnapshot[];
   _historyFuture: StoreSnapshot[];
@@ -206,6 +207,8 @@ interface RestaurantStore {
   updateCustomPage: (id: string, data: Partial<CustomPage>) => void;
   deleteCustomPage: (id: string) => void;
 
+  logVisit: () => void;
+
   undoChange: () => void;
   redoChange: () => void;
 }
@@ -243,6 +246,7 @@ export const useRestaurantStore = create<RestaurantStore>()(
       deliverySettings: defaultDeliverySettings,
       reservationSettings: defaultReservationSettings,
       customPages: [],
+      visitLog: [],
 
       _historyPast: [],
       _historyFuture: [],
@@ -256,6 +260,7 @@ export const useRestaurantStore = create<RestaurantStore>()(
         });
       },
 
+      logVisit: () => set((s) => ({ visitLog: [...s.visitLog.slice(-999), new Date().toISOString()] })),
       updateSiteTheme: (theme) => set((s) => ({ siteTheme: { ...s.siteTheme, ...theme } })),
       updateAdminTheme: (theme) => set((s) => ({ adminTheme: { ...s.adminTheme, ...theme } })),
       updateQuickControls: (controls) => set((s) => ({ quickControls: { ...s.quickControls, ...controls } })),
@@ -326,6 +331,10 @@ export const useRestaurantStore = create<RestaurantStore>()(
         const s = get();
         set({
           testimonials: [...s.testimonials, { ...t, id: generateId("t") }],
+          activityLog: [
+            { id: generateId("al"), message: "New Review", detail: `${t.name} left a ${t.rating}-star review`, timestamp: new Date().toISOString() },
+            ...s.activityLog.slice(0, 49),
+          ],
           _historyPast: [...s._historyPast.slice(-29), snapshot(s)],
           _historyFuture: [],
         });

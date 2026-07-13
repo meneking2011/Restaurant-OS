@@ -14,7 +14,8 @@ import { Link } from "wouter";
 type Category = 'all' | 'starters' | 'mains' | 'desserts' | 'drinks';
 
 export default function MenuPage() {
-  const { menuItems, config } = useRestaurantStore();
+  const { menuItems, config, quickControls } = useRestaurantStore();
+  const orderingDisabled = !quickControls.restaurantOpen;
   const [activeCategory, setActiveCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -88,6 +89,14 @@ export default function MenuPage() {
             Our culinary philosophy is rooted in reverence for the ingredients. We work closely with local purveyors and sustainable fisheries to ensure that every dish tells a story of intention, quality, and craft.
           </p>
         </div>
+
+        {orderingDisabled && (
+          <div className="max-w-3xl mx-auto mb-12 text-center bg-card border border-border rounded-sm p-5">
+            <p className="text-muted-foreground text-sm">
+              We're currently closed and not accepting online orders right now — feel free to browse the menu. Please check back during our opening hours to order.
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
           <div className="flex flex-wrap justify-center gap-2 md:gap-4">
@@ -165,11 +174,12 @@ export default function MenuPage() {
                 <div className="flex justify-end">
                   <Button 
                     variant="outline"
+                    disabled={orderingDisabled}
                     onClick={() => handleAddToCart(item)}
-                    className="border-primary text-primary hover:bg-primary hover:text-primary-foreground tracking-widest uppercase text-xs rounded-none"
+                    className="border-primary text-primary hover:bg-primary hover:text-primary-foreground tracking-widest uppercase text-xs rounded-none disabled:opacity-40 disabled:pointer-events-none"
                     data-testid={`button-add-to-cart-${item.id}`}
                   >
-                    Add to Order
+                    {orderingDisabled ? "Currently Closed" : "Add to Order"}
                   </Button>
                 </div>
               </div>

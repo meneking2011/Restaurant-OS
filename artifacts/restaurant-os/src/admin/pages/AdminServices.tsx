@@ -131,7 +131,7 @@ export default function AdminServices() {
                 <p className="text-sm text-foreground/60 mt-1 leading-relaxed">{svc.description}</p>
                 <p className="text-xs text-foreground/30 mt-2">icon: {svc.icon}</p>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <div className="flex gap-1 shrink-0">
                 <button
                   onClick={() => { setEditingId(svc.id); setAdding(false); }}
                   className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/50 hover:text-foreground transition-colors"
