@@ -43,7 +43,7 @@ export function AdminLayout({ children, title, subtitle, actions }: AdminLayoutP
               </div>
               <span className="hidden sm:block text-xs">{config.name}</span>
             </div>
-            <Link href="/" target="_blank">
+            <Link href="/" target="_blank" rel="noopener noreferrer">
               <button className="px-4 py-1.5 bg-primary text-black text-sm font-semibold rounded-lg hover:bg-primary/80 transition-colors">
                 Publish
               </button>
@@ -64,9 +64,8 @@ export function AdminLayout({ children, title, subtitle, actions }: AdminLayoutP
         <main className="flex-1 px-6 py-5">{children}</main>
 
         <footer className="px-6 py-2.5 border-t border-white/5 flex items-center gap-6 text-xs text-foreground/30">
-          <span>Website Visits (Month): <span className="text-foreground/50">2,450</span></span>
-          <span>Storage Used: <span className="text-foreground/50">68%</span></span>
-          <span>Last Published: <span className="text-foreground/50">Jul 12, 2026</span></span>
+          <span>RestaurantOS <span className="text-foreground/50">v2.0</span></span>
+          <span className="ml-auto">All changes saved to local store</span>
         </footer>
       </div>
     </div>

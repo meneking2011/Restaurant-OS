@@ -41,7 +41,7 @@ export default function ContactPage() {
   });
 
   const onSubmit = (data: ContactFormValues) => {
-    console.log("Contact submitted:", data);
+    // Form submission handled — integrate with backend/email service when available
     setIsSubmitted(true);
   };
 
