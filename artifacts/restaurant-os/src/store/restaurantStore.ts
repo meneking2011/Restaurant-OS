@@ -15,6 +15,9 @@ import {
   DesignTokenPage,
   SectionKey,
   SectionMediaConfig,
+  PaymentSettings,
+  PaymentProviderId,
+  PaymentProviderConnection,
 } from "../types/restaurant";
 import {
   restaurantConfig as initialConfig,
@@ -163,6 +166,17 @@ const defaultReservationSettings: ReservationSettings = {
   multipleLimit: 1,
 };
 
+const defaultPaymentSettings: PaymentSettings = {
+  activeProvider: null,
+  connections: {},
+  methodsEnabled: {
+    card: true,
+    bankTransfer: true,
+    mobileWallet: false,
+    cashOnDelivery: false,
+  },
+};
+
 const defaultNavLinks: NavLink[] = [
   { id: "home",         label: "HOME",              href: "/",            visible: true,  openInNewTab: false },
   { id: "menu",         label: "MENU",              href: "/menu",        visible: true,  openInNewTab: false },
@@ -189,6 +203,7 @@ interface RestaurantStore {
   navLinks: NavLink[];
   deliverySettings: DeliverySettings;
   reservationSettings: ReservationSettings;
+  paymentSettings: PaymentSettings;
   customPages: CustomPage[];
   visitLog: string[];
   themeOverrides: Partial<Record<DesignTokenPage, Partial<SiteTheme>>>;
@@ -208,6 +223,11 @@ interface RestaurantStore {
   updateNavLinks: (links: NavLink[]) => void;
   updateDeliverySettings: (settings: Partial<DeliverySettings>) => void;
   updateReservationSettings: (settings: Partial<ReservationSettings>) => void;
+  updatePaymentMethods: (methods: Partial<PaymentSettings["methodsEnabled"]>) => void;
+  connectPaymentProvider: (provider: PaymentProviderId, connection: PaymentProviderConnection) => void;
+  disconnectPaymentProvider: (provider: PaymentProviderId) => void;
+  setActivePaymentProvider: (provider: PaymentProviderId | null) => void;
+  markOrderPaid: (id: string, reference: string) => void;
 
   addMenuItem: (item: Omit<MenuItem, "id">) => void;
   updateMenuItem: (id: string, item: Partial<MenuItem>) => void;
@@ -287,6 +307,7 @@ export const useRestaurantStore = create<RestaurantStore>()(
       navLinks: defaultNavLinks,
       deliverySettings: defaultDeliverySettings,
       reservationSettings: defaultReservationSettings,
+      paymentSettings: defaultPaymentSettings,
       customPages: [],
       visitLog: [],
       themeOverrides: {},
@@ -331,6 +352,37 @@ export const useRestaurantStore = create<RestaurantStore>()(
       },
       updateDeliverySettings: (settings) => set((s) => ({ deliverySettings: { ...s.deliverySettings, ...settings } })),
       updateReservationSettings: (settings) => set((s) => ({ reservationSettings: { ...s.reservationSettings, ...settings } })),
+      updatePaymentMethods: (methods) => set((s) => ({
+        paymentSettings: { ...s.paymentSettings, methodsEnabled: { ...s.paymentSettings.methodsEnabled, ...methods } },
+      })),
+      connectPaymentProvider: (provider, connection) => set((s) => ({
+        paymentSettings: {
+          ...s.paymentSettings,
+          activeProvider: s.paymentSettings.activeProvider ?? provider,
+          connections: { ...s.paymentSettings.connections, [provider]: connection },
+        },
+      })),
+      disconnectPaymentProvider: (provider) => set((s) => {
+        const connections = { ...s.paymentSettings.connections };
+        delete connections[provider];
+        return {
+          paymentSettings: {
+            ...s.paymentSettings,
+            activeProvider: s.paymentSettings.activeProvider === provider ? null : s.paymentSettings.activeProvider,
+            connections,
+          },
+        };
+      }),
+      setActivePaymentProvider: (provider) => set((s) => ({
+        paymentSettings: { ...s.paymentSettings, activeProvider: provider },
+      })),
+      markOrderPaid: (id, reference) => set((s) => ({
+        orders: s.orders.map((o) => o.id === id ? { ...o, paymentStatus: "paid" as const, paymentReference: reference } : o),
+        activityLog: [
+          { id: generateId("al"), message: "Payment Confirmed", detail: `Order #${id.replace("ord-", "")} verified paid`, timestamp: new Date().toISOString() },
+          ...s.activityLog.slice(0, 49),
+        ],
+      })),
 
       addMenuItem: (item) => {
         const s = get();
