@@ -1,3 +1,6 @@
 - [RestaurantOS RCC architecture](rcc-architecture.md) — full admin panel structure, CSS var format, store keys, and routing conventions
 - [Store extensions](store-extensions.md) — deliverySettings, reservationSettings, navLinks added to store; CheckoutPage must read these, not hardcode values
 - [RestaurantOS notification/gating patterns](restaurant-os-patterns.md) — activityLog-as-notifications convention, closed-state page gating, keyless map embeds
+- [RestaurantOS Firebase multi-tenant architecture](firebase-multitenant-restaurant-os.md) — owners/restaurants Firestore scheme, tenantSync, default-tenant onboarding
+- [RestaurantOS Firestore security rules](restaurant-os-firestore-rules.md) — exact rules text to hand the user; agent cannot deploy rules itself (no CLI/service-account access)
+- [Design Tokens / per-page overrides](design-tokens-architecture.md) — SiteTheme extension, themeOverrides merge-by-route, section-media pattern, button CSS-var tokens

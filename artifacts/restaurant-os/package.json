@@ -74,5 +74,8 @@
     "wouter": "^3.3.5",
     "zod": "catalog:",
     "zustand": "^4.5.7"
+  },
+  "dependencies": {
+    "firebase": "^12.16.0"
   }
 }

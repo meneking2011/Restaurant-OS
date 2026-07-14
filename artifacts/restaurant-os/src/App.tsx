@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { Wrench } from "lucide-react";
+import { AuthProvider, useAuth } from "@/lib/auth";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const CustomPageView = lazy(() => import("@/pages/CustomPageView"));
@@ -34,6 +35,7 @@ const AdminMediaLibrary = lazy(() => import("@/admin/pages/AdminMediaLibrary"));
 const AdminPages = lazy(() => import("@/admin/pages/AdminPages"));
 const AdminNavigation = lazy(() => import("@/admin/pages/AdminNavigation"));
 const AdminWebsite = lazy(() => import("@/admin/pages/AdminWebsite"));
+const AdminLogin = lazy(() => import("@/admin/pages/AdminLogin"));
 
 const queryClient = new QueryClient();
 
@@ -71,6 +73,19 @@ function MaintenancePage() {
   );
 }
 
+/** Gate for every /admin/* route except /admin/login. Redirects unauthenticated visitors to sign in. */
+function RequireAuth({ component: Component }: { component: React.ComponentType }) {
+  const { user, loading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!loading && !user) navigate("/admin/login");
+  }, [loading, user, navigate]);
+
+  if (loading || !user) return <FallbackLoader />;
+  return <Component />;
+}
+
 function Router() {
   const [location] = useLocation();
   const quickControls = useRestaurantStore((s) => s.quickControls);
@@ -93,21 +108,23 @@ function Router() {
         <Route path="/contact" component={ContactPage} />
         <Route path="/checkout" component={CheckoutPage} />
 
-        <Route path="/admin" component={AdminDashboard} />
-        <Route path="/admin/website" component={AdminWebsite} />
-        <Route path="/admin/business" component={AdminBusinessDetails} />
-        <Route path="/admin/menu" component={AdminMenu} />
-        <Route path="/admin/reservations" component={AdminReservations} />
-        <Route path="/admin/orders" component={AdminOrders} />
-        <Route path="/admin/gallery" component={AdminGallery} />
-        <Route path="/admin/media" component={AdminMediaLibrary} />
-        <Route path="/admin/design-tokens" component={AdminDesignTokens} />
-        <Route path="/admin/navigation" component={AdminNavigation} />
-        <Route path="/admin/pages" component={AdminPages} />
-        <Route path="/admin/services" component={AdminServices} />
-        <Route path="/admin/testimonials" component={AdminTestimonials} />
-        <Route path="/admin/analytics" component={AdminAnalytics} />
-        <Route path="/admin/settings" component={AdminSettings} />
+        <Route path="/admin/login" component={AdminLogin} />
+
+        <Route path="/admin" component={() => <RequireAuth component={AdminDashboard} />} />
+        <Route path="/admin/website" component={() => <RequireAuth component={AdminWebsite} />} />
+        <Route path="/admin/business" component={() => <RequireAuth component={AdminBusinessDetails} />} />
+        <Route path="/admin/menu" component={() => <RequireAuth component={AdminMenu} />} />
+        <Route path="/admin/reservations" component={() => <RequireAuth component={AdminReservations} />} />
+        <Route path="/admin/orders" component={() => <RequireAuth component={AdminOrders} />} />
+        <Route path="/admin/gallery" component={() => <RequireAuth component={AdminGallery} />} />
+        <Route path="/admin/media" component={() => <RequireAuth component={AdminMediaLibrary} />} />
+        <Route path="/admin/design-tokens" component={() => <RequireAuth component={AdminDesignTokens} />} />
+        <Route path="/admin/navigation" component={() => <RequireAuth component={AdminNavigation} />} />
+        <Route path="/admin/pages" component={() => <RequireAuth component={AdminPages} />} />
+        <Route path="/admin/services" component={() => <RequireAuth component={AdminServices} />} />
+        <Route path="/admin/testimonials" component={() => <RequireAuth component={AdminTestimonials} />} />
+        <Route path="/admin/analytics" component={() => <RequireAuth component={AdminAnalytics} />} />
+        <Route path="/admin/settings" component={() => <RequireAuth component={AdminSettings} />} />
 
         <Route path="/pages/:slug">
           {(params) => <CustomPageView slug={params.slug ?? ""} />}
@@ -123,12 +140,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ThemeProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+            <Toaster />
+          </ThemeProvider>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

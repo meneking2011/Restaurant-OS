@@ -244,7 +244,16 @@ interface RestaurantStore {
 
   undoChange: () => void;
   redoChange: () => void;
+
+  hydrateFromTenant: (data: Partial<RestaurantStore>) => void;
 }
+
+/** Pure-data fields that are synced per-tenant to Firestore (excludes actions and undo history). */
+export const TENANT_DATA_FIELDS = [
+  "config", "menuItems", "services", "testimonials", "reservations", "galleryImages", "orders",
+  "siteTheme", "adminTheme", "quickControls", "activityLog", "navLinks", "deliverySettings",
+  "reservationSettings", "customPages", "visitLog", "themeOverrides", "sectionMedia",
+] as const;
 
 function generateId(prefix: string) {
   return `${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -476,6 +485,8 @@ export const useRestaurantStore = create<RestaurantStore>()(
         customPages: s.customPages.filter((p) => p.id !== id),
       })),
 
+      hydrateFromTenant: (data: Partial<RestaurantStore>) => set(() => ({ ...data })),
+
       undoChange: () => {
         const s = get();
         if (s._historyPast.length === 0) return;
@@ -510,3 +521,14 @@ export const useRestaurantStore = create<RestaurantStore>()(
     }
   )
 );
+
+/** Snapshot of the pure-data fields, used both to write to Firestore and to seed a brand-new tenant. */
+export function getTenantSyncableState(): Record<string, unknown> {
+  const s = useRestaurantStore.getState();
+  const out: Record<string, unknown> = {};
+  for (const key of TENANT_DATA_FIELDS) out[key] = (s as unknown as Record<string, unknown>)[key];
+  return out;
+}
+
+// Captured once at module load, before any Firestore hydration — used to seed newly onboarded tenants.
+export const DEFAULT_TENANT_STATE = getTenantSyncableState();

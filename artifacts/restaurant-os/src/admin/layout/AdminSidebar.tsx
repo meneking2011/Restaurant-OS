@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRestaurantStore } from "@/store/restaurantStore";
+import { useAuth } from "@/lib/auth";
 
 const navItems = [
   { href: "/admin",              label: "Dashboard",       icon: LayoutDashboard, exact: true },
@@ -31,10 +32,11 @@ interface AdminSidebarProps {
 }
 
 export function AdminSidebar({ onLinkClick }: AdminSidebarProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const config       = useRestaurantStore((s) => s.config);
   const orders       = useRestaurantStore((s) => s.orders);
   const reservations = useRestaurantStore((s) => s.reservations);
+  const { user, logout } = useAuth();
 
   const pendingOrders = orders.filter((o) => o.status === "new").length;
   const pendingRes    = reservations.filter((r) => r.status === "pending").length;
@@ -101,12 +103,22 @@ export function AdminSidebar({ onLinkClick }: AdminSidebarProps) {
           <ExternalLink className="w-3.5 h-3.5" />
           View Live Site
         </a>
-        <Link href="/" onClick={onLinkClick}>
-          <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-foreground/40 hover:text-red-400 hover:bg-red-400/5 transition-colors cursor-pointer">
-            <LogOut className="w-3.5 h-3.5" />
-            Exit Admin
-          </span>
-        </Link>
+        {user && (
+          <p className="px-3 pb-1 text-[10px] text-foreground/30 truncate" title={user.email ?? ""}>
+            {user.email}
+          </p>
+        )}
+        <button
+          onClick={async () => {
+            onLinkClick?.();
+            await logout();
+            navigate("/");
+          }}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-foreground/40 hover:text-red-400 hover:bg-red-400/5 transition-colors cursor-pointer text-left"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          {user ? "Sign Out" : "Exit Admin"}
+        </button>
       </div>
     </aside>
   );
