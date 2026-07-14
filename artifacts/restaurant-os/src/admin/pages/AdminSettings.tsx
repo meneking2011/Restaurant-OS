@@ -2,11 +2,11 @@ import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { useRestaurantStore } from "@/store/restaurantStore";
-import { PAYMENT_PROVIDERS, PAYMENT_METHODS } from "@/types/restaurant";
-import type { PaymentProviderId } from "@/types/restaurant";
 import { AdminLayout } from "../layout/AdminLayout";
-import { Save, User, CreditCard, Bell, Shield, HardDrive, RefreshCw, Palette, CheckCircle2, Link, Unlink } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { Save, User, CreditCard, Bell, Shield, HardDrive, RefreshCw, Palette, Loader2, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hexToHsl } from "@/utils/colorUtils";
 
@@ -51,52 +51,105 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
 }
 
 function AccountTab() {
-  const [saved, setSaved] = useState(false);
-  const [pwSaved, setPwSaved] = useState(false);
-  const { register: r1, handleSubmit: h1, formState: { errors: e1 } } = useForm({ resolver: zodResolver(accountSchema), defaultValues: { ownerName: "Alex M.", email: "alex@restaurant.com" } });
-  const { register: r2, handleSubmit: h2, formState: { errors: e2 } } = useForm({ resolver: zodResolver(passwordSchema), defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" } });
+  const { user } = useAuth();
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
+  });
+
+  const handlePasswordChange = async (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+    if (!user || !user.email) {
+      setPwError("No authenticated user found. Please sign in again.");
+      return;
+    }
+    setPwSaving(true);
+    setPwError("");
+    setPwSuccess("");
+    try {
+      const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, data.newPassword);
+      setPwSuccess("Password updated successfully.");
+      reset();
+      setTimeout(() => setPwSuccess(""), 5000);
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
+        setPwError("Current password is incorrect.");
+      } else if (code === "auth/weak-password") {
+        setPwError("New password must be at least 6 characters.");
+      } else if (code === "auth/too-many-requests") {
+        setPwError("Too many attempts. Please wait before trying again.");
+      } else {
+        setPwError("Failed to update password. Please try again.");
+      }
+    } finally {
+      setPwSaving(false);
+    }
+  };
 
   return (
-    <div className="grid sm:grid-cols-2 gap-6">
-      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-foreground">1. Owner Profile</h3>
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold shrink-0">A</div>
-          <button className="text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors">Change Picture</button>
+    <div className="max-w-md space-y-5">
+      {/* Signed-in account */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Signed-in Account</h3>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-bold shrink-0">
+            {user?.email?.charAt(0).toUpperCase() ?? "?"}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm text-foreground truncate">{user?.email ?? "Not signed in"}</p>
+            <p className="text-xs text-emerald-400">Verified</p>
+          </div>
         </div>
-        <form onSubmit={h1((d) => { setSaved(true); setTimeout(() => setSaved(false), 2500); })} className="space-y-3">
-          <div>
-            <label className="text-xs text-foreground/50 mb-1 block">Name</label>
-            <input {...r1("ownerName")} className={inputCls} />
-            {e1.ownerName && <p className="text-red-400 text-xs mt-1">{e1.ownerName.message}</p>}
-          </div>
-          <div>
-            <label className="text-xs text-foreground/50 mb-1 block">Email Address</label>
-            <div className="relative">
-              <input {...r1("email")} type="email" className={inputCls + " pr-20"} />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-emerald-400 font-medium">Verified</span>
-            </div>
-            {e1.email && <p className="text-red-400 text-xs mt-1">{e1.email.message}</p>}
-          </div>
-          <button type="submit" className="px-4 py-2 bg-primary text-black text-sm font-medium rounded-lg hover:bg-primary/80 transition-colors">
-            {saved ? "Saved!" : "Save Changes"}
-          </button>
-        </form>
       </div>
 
+      {/* Change password */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-foreground">2. Password Settings</h3>
-        <p className="text-xs text-foreground/40">Ensure a strong password to protect your account.</p>
-        <form onSubmit={h2(() => { setPwSaved(true); setTimeout(() => setPwSaved(false), 2500); })} className="space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Change Password</h3>
+        <p className="text-xs text-foreground/40">
+          Updates your Firebase login password immediately.
+        </p>
+
+        {pwSuccess && (
+          <p className="text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-lg px-3 py-2">
+            {pwSuccess}
+          </p>
+        )}
+        {pwError && (
+          <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+            {pwError}
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit(handlePasswordChange)} className="space-y-3">
           {(["currentPassword", "newPassword", "confirmPassword"] as const).map((field) => (
             <div key={field}>
-              <label className="text-xs text-foreground/50 mb-1 block capitalize">{field.replace(/([A-Z])/g, " $1")}</label>
-              <input {...r2(field)} type="password" className={inputCls} />
-              {e2[field] && <p className="text-red-400 text-xs mt-1">{(e2[field] as { message?: string }).message}</p>}
+              <label className="text-xs text-foreground/50 mb-1 block">
+                {field === "currentPassword" ? "Current Password" : field === "newPassword" ? "New Password" : "Confirm New Password"}
+              </label>
+              <input
+                {...register(field)}
+                type="password"
+                autoComplete={field === "currentPassword" ? "current-password" : "new-password"}
+                className={inputCls}
+              />
+              {errors[field] && (
+                <p className="text-red-400 text-xs mt-1">{(errors[field] as { message?: string }).message}</p>
+              )}
             </div>
           ))}
-          <button type="submit" className="w-full py-2 bg-white/5 border border-white/10 text-foreground/70 text-sm rounded-lg hover:bg-white/10 transition-colors">
-            {pwSaved ? "Updated!" : "Update Password"}
+          <button
+            type="submit"
+            disabled={pwSaving}
+            className="flex items-center gap-2 w-full justify-center py-2 bg-primary text-black text-sm font-medium rounded-lg hover:bg-primary/80 transition-colors disabled:opacity-50"
+          >
+            {pwSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {pwSaving ? "Updating…" : "Update Password"}
           </button>
         </form>
       </div>
@@ -176,147 +229,159 @@ function GeneralTab() {
 function PaymentsTab() {
   const {
     deliverySettings, updateDeliverySettings,
-    paymentSettings, updatePaymentMethods, connectPaymentProvider, disconnectPaymentProvider, setActivePaymentProvider,
+    paymentSettings, updatePaymentMethods,
+    config, updateConfig,
   } = useRestaurantStore();
+
   const [fee,      setFee]      = useState(String(deliverySettings.fee));
   const [minOrder, setMinOrder] = useState(String(deliverySettings.minOrder));
   const [taxRate,  setTaxRate]  = useState(String((deliverySettings.taxRate * 100).toFixed(1)));
-  const [saved, setSaved] = useState(false);
-  const [connecting, setConnecting] = useState<PaymentProviderId | null>(null);
+  const [checkoutSaved, setCheckoutSaved] = useState(false);
 
-  const handleSave = () => {
+  const ba = config.bankAccount;
+  const [bankName,      setBankName]      = useState(ba?.bankName      ?? "");
+  const [accountName,   setAccountName]   = useState(ba?.accountName   ?? "");
+  const [accountNumber, setAccountNumber] = useState(ba?.accountNumber ?? "");
+  const [sortCode,      setSortCode]      = useState(ba?.sortCode      ?? "");
+  const [iban,          setIban]          = useState(ba?.iban          ?? "");
+  const [swiftBic,      setSwiftBic]      = useState(ba?.swiftBic      ?? "");
+  const [bankSaved, setBankSaved] = useState(false);
+
+  const cardEnabled = paymentSettings.methodsEnabled.card;
+  const bankEnabled = paymentSettings.methodsEnabled.bankTransfer;
+
+  const saveCheckout = () => {
     updateDeliverySettings({
       fee:      parseFloat(fee)     || 0,
       minOrder: parseFloat(minOrder) || 0,
       taxRate:  (parseFloat(taxRate) || 0) / 100,
     });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setCheckoutSaved(true);
+    setTimeout(() => setCheckoutSaved(false), 2500);
   };
 
-  const handleConnect = async (providerId: PaymentProviderId) => {
-    setConnecting(providerId);
-    await new Promise((r) => setTimeout(r, 800));
-    connectPaymentProvider(providerId, {
-      connected: true,
-      accountLabel: `${PAYMENT_PROVIDERS.find((p) => p.id === providerId)?.name} Account`,
-      connectedAt: new Date().toISOString(),
+  const saveBankDetails = () => {
+    updateConfig({
+      bankAccount: {
+        bankName:      bankName.trim(),
+        accountName:   accountName.trim(),
+        accountNumber: accountNumber.trim(),
+        sortCode:      sortCode.trim() || undefined,
+        iban:          iban.trim()     || undefined,
+        swiftBic:      swiftBic.trim() || undefined,
+      },
     });
-    setActivePaymentProvider(providerId);
-    setConnecting(null);
-  };
-
-  const handleDisconnect = (providerId: PaymentProviderId) => {
-    disconnectPaymentProvider(providerId);
-    if (paymentSettings.activeProvider === providerId) {
-      setActivePaymentProvider(null);
-    }
+    setBankSaved(true);
+    setTimeout(() => setBankSaved(false), 2500);
   };
 
   return (
     <div className="space-y-5 max-w-2xl">
-      {/* Provider Cards */}
+
+      {/* Card Payment */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-3">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Payment Providers</h3>
-          <p className="text-xs text-foreground/40 mt-0.5">Connect a payment provider to accept online payments. Only one active provider at a time.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Card Payment</h3>
+            <p className="text-xs text-foreground/40 mt-0.5">Accept Visa, Mastercard and other cards via a payment gateway</p>
+          </div>
+          <Toggle
+            checked={cardEnabled}
+            onChange={() => updatePaymentMethods({ card: !cardEnabled })}
+          />
         </div>
-        {PAYMENT_PROVIDERS.map((provider) => {
-          const connection = paymentSettings.connections[provider.id];
-          const isConnected = connection?.connected ?? false;
-          const isActive = paymentSettings.activeProvider === provider.id;
-          const isConnecting = connecting === provider.id;
-          return (
-            <div
-              key={provider.id}
-              className={cn(
-                "flex items-center justify-between p-4 rounded-lg border transition-colors",
-                isActive
-                  ? "border-primary/40 bg-primary/5"
-                  : "border-white/10 bg-white/3 hover:bg-white/5"
-              )}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-sm font-medium text-foreground">{provider.name}</span>
-                  {isConnected ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-                      <CheckCircle2 className="w-2.5 h-2.5" />
-                      {isActive ? "Active" : "Connected"}
-                    </span>
-                  ) : provider.live ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                      Connect Account
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white/5 text-foreground/40 border border-white/10">
-                      Coming Soon
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-foreground/40 truncate">{provider.description}</p>
-                {isConnected && connection?.accountLabel && (
-                  <p className="text-xs text-primary/80 mt-0.5">{connection.accountLabel}</p>
-                )}
-              </div>
-              <div className="ml-4 shrink-0">
-                {isConnected ? (
-                  <button
-                    onClick={() => handleDisconnect(provider.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400 border border-red-400/20 rounded-lg hover:bg-red-400/10 transition-colors"
-                  >
-                    <Unlink className="w-3 h-3" /> Disconnect
-                  </button>
-                ) : provider.live ? (
-                  <button
-                    onClick={() => handleConnect(provider.id)}
-                    disabled={isConnecting}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-primary border border-primary/30 rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50"
-                  >
-                    <Link className="w-3 h-3" />
-                    {isConnecting ? "Connecting…" : "Connect"}
-                  </button>
-                ) : (
-                  <span className="text-xs text-foreground/25 px-3 py-1.5">Unavailable</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {cardEnabled && (
+          <div className="rounded-lg bg-white/3 border border-white/8 px-4 py-3 text-xs text-foreground/50 leading-relaxed">
+            Card payment processing requires a payment gateway (e.g. Stripe, PayPal). Contact your developer to configure a live payment provider with real API credentials.
+          </div>
+        )}
       </div>
 
-      {/* Payment Methods */}
+      {/* Bank Transfer */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Payment Methods</h3>
-          <p className="text-xs text-foreground/40 mt-0.5">Choose which methods customers can select at checkout.</p>
-        </div>
-        {PAYMENT_METHODS.map(({ key, label, description }) => (
-          <div key={key} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-            <div>
-              <p className="text-sm text-foreground">{label}</p>
-              <p className="text-xs text-foreground/40">{description}</p>
-            </div>
-            <Toggle
-              checked={paymentSettings.methodsEnabled[key]}
-              onChange={() => updatePaymentMethods({ [key]: !paymentSettings.methodsEnabled[key] })}
-            />
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <Building className="w-3.5 h-3.5 text-primary" />
+              Bank Transfer
+            </h3>
+            <p className="text-xs text-foreground/40 mt-0.5">Customers pay directly into your bank account</p>
           </div>
-        ))}
+          <Toggle
+            checked={bankEnabled}
+            onChange={() => updatePaymentMethods({ bankTransfer: !bankEnabled })}
+          />
+        </div>
+
+        {bankEnabled && (
+          <div className="space-y-3 pt-1 border-t border-white/8">
+            <p className="text-xs text-foreground/50">
+              These details are shown to customers at checkout when they choose Bank Transfer. Enter your actual business bank account information.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-foreground/50 mb-1 block">Bank Name <span className="text-red-400">*</span></label>
+                <input value={bankName} onChange={(e) => setBankName(e.target.value)} className={inputCls} placeholder="e.g. Chase, Barclays" />
+              </div>
+              <div>
+                <label className="text-xs text-foreground/50 mb-1 block">Account Holder Name <span className="text-red-400">*</span></label>
+                <input value={accountName} onChange={(e) => setAccountName(e.target.value)} className={inputCls} placeholder="Legal business name" />
+              </div>
+              <div>
+                <label className="text-xs text-foreground/50 mb-1 block">Account Number <span className="text-red-400">*</span></label>
+                <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} className={inputCls} placeholder="e.g. 12345678" />
+              </div>
+              <div>
+                <label className="text-xs text-foreground/50 mb-1 block">Sort Code / Routing Number</label>
+                <input value={sortCode} onChange={(e) => setSortCode(e.target.value)} className={inputCls} placeholder="e.g. 20-00-00" />
+              </div>
+              <div>
+                <label className="text-xs text-foreground/50 mb-1 block">IBAN</label>
+                <input value={iban} onChange={(e) => setIban(e.target.value)} className={inputCls} placeholder="e.g. GB29 NWBK 6016 1331 9268 19" />
+              </div>
+              <div>
+                <label className="text-xs text-foreground/50 mb-1 block">SWIFT / BIC</label>
+                <input value={swiftBic} onChange={(e) => setSwiftBic(e.target.value)} className={inputCls} placeholder="e.g. NWBKGB2L" />
+              </div>
+            </div>
+            <button
+              onClick={saveBankDetails}
+              disabled={!bankName.trim() || !accountName.trim() || !accountNumber.trim()}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {bankSaved ? "Saved!" : "Save Bank Details"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Checkout Settings */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-foreground">Checkout Settings</h3>
-        <p className="text-xs text-foreground/40">These values flow directly to the customer checkout page.</p>
-        <div><label className="text-xs text-foreground/50 mb-1 block">Delivery Fee ($)</label><input type="number" step="0.01" value={fee} onChange={(e) => setFee(e.target.value)} className={inputCls} /></div>
-        <div><label className="text-xs text-foreground/50 mb-1 block">Minimum Order Amount ($)</label><input type="number" step="0.01" value={minOrder} onChange={(e) => setMinOrder(e.target.value)} className={inputCls} /></div>
-        <div><label className="text-xs text-foreground/50 mb-1 block">Tax Rate (%)</label><input type="number" step="0.1" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} className={inputCls} /></div>
+        <p className="text-xs text-foreground/40">Applied to every customer order at checkout.</p>
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div>
+            <label className="text-xs text-foreground/50 mb-1 block">Delivery Fee ($)</label>
+            <input type="number" step="0.01" min="0" value={fee} onChange={(e) => setFee(e.target.value)} className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-foreground/50 mb-1 block">Minimum Order ($)</label>
+            <input type="number" step="0.01" min="0" value={minOrder} onChange={(e) => setMinOrder(e.target.value)} className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-foreground/50 mb-1 block">Tax Rate (%)</label>
+            <input type="number" step="0.1" min="0" max="100" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} className={inputCls} />
+          </div>
+        </div>
+        <button
+          onClick={saveCheckout}
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors"
+        >
+          <Save className="w-3.5 h-3.5" />
+          {checkoutSaved ? "Saved!" : "Save Checkout Settings"}
+        </button>
       </div>
-
-      <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors">
-        <Save className="w-3.5 h-3.5" /> {saved ? "Saved!" : "Save Checkout Settings"}
-      </button>
     </div>
   );
 }

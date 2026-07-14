@@ -33,6 +33,7 @@ const METHOD_ICONS: Record<PaymentMethodId, typeof CreditCard> = {
 export default function CheckoutPage() {
   const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
   const { addOrder, quickControls, config, deliverySettings, orders, paymentSettings } = useRestaurantStore();
+  const bankAccount = config.bankAccount;
   const [activeOrderId, setActiveOrderId] = useState<string | null>(() => sessionStorage.getItem(ACTIVE_ORDER_KEY));
   const [customerName, setCustomerName] = useState("");
 
@@ -377,9 +378,32 @@ export default function CheckoutPage() {
 
                   {/* Per-method details */}
                   {paymentMethod === "bankTransfer" && (
-                    <div className="text-sm text-muted-foreground bg-background p-4 border border-border">
-                      Bank transfer instructions will be sent to your email. Your order will be
-                      prepared once payment is confirmed.
+                    <div className="text-sm text-muted-foreground bg-background p-4 border border-border space-y-2">
+                      {bankAccount?.accountNumber ? (
+                        <>
+                          <p className="text-xs uppercase tracking-widest text-primary mb-3">Bank Transfer Details</p>
+                          {(
+                            [
+                              { label: "Bank", value: bankAccount.bankName },
+                              { label: "Account Name", value: bankAccount.accountName },
+                              { label: "Account Number", value: bankAccount.accountNumber },
+                              bankAccount.sortCode ? { label: "Sort Code / Routing", value: bankAccount.sortCode } : null,
+                              bankAccount.iban ? { label: "IBAN", value: bankAccount.iban } : null,
+                              bankAccount.swiftBic ? { label: "SWIFT / BIC", value: bankAccount.swiftBic } : null,
+                            ] as ({ label: string; value: string } | null)[]
+                          ).filter((r): r is { label: string; value: string } => r !== null).map(({ label, value }) => (
+                            <div key={label} className="flex justify-between text-xs">
+                              <span className="text-muted-foreground/70">{label}</span>
+                              <span className="font-medium text-foreground">{value}</span>
+                            </div>
+                          ))}
+                          <p className="text-xs text-muted-foreground/60 pt-2 border-t border-border">
+                            Use your order number as the payment reference. Your order will be prepared once payment is confirmed.
+                          </p>
+                        </>
+                      ) : (
+                        <p>Bank transfer details will be sent to your email after placing the order.</p>
+                      )}
                     </div>
                   )}
 

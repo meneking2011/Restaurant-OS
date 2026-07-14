@@ -16,6 +16,16 @@ export interface RestaurantConfig {
   googleMapsUrl?: string;
   /** Destination address for all outbound system notifications (new order/reservation/message alerts). Falls back to `email` when unset. */
   notificationEmail?: string;
+  /** Bank account details shown to customers when they choose Bank Transfer at checkout. */
+  bankAccount?: {
+    accountName: string;
+    accountNumber: string;
+    bankName: string;
+    /** Sort code (UK) or routing number (US) */
+    sortCode?: string;
+    iban?: string;
+    swiftBic?: string;
+  };
 }
 
 // ── Payments ──────────────────────────────────────────────────────────────

@@ -14,8 +14,6 @@ import { cn } from "@/lib/utils";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// Builds the last 7 calendar days (oldest → newest) as ISO date keys + labels,
-// so the charts always reflect the current week rather than a fixed demo set.
 function lastSevenDays() {
   const days: { key: string; label: string }[] = [];
   for (let i = 6; i >= 0; i--) {
@@ -26,6 +24,47 @@ function lastSevenDays() {
   return days;
 }
 
+function BarChart({
+  data,
+  days,
+  color = "bg-primary/40",
+  hoverColor = "bg-primary/60",
+}: {
+  data: number[];
+  days: { label: string }[];
+  color?: string;
+  hoverColor?: string;
+}) {
+  const max = Math.max(1, ...data);
+  return (
+    <div>
+      <div className="h-28 flex items-end gap-1 sm:gap-1.5">
+        {data.map((v, i) => (
+          <div
+            key={i}
+            title={`${days[i].label}: ${v}`}
+            className={cn(
+              "flex-1 rounded-t-sm transition-colors cursor-default",
+              v > 0 ? `${color} hover:${hoverColor}` : "bg-white/5"
+            )}
+            style={{ height: v > 0 ? `${Math.max(6, (v / max) * 100)}%` : "3px" }}
+          />
+        ))}
+      </div>
+      <div className="flex gap-1 sm:gap-1.5 mt-2 border-t border-white/5 pt-2">
+        {days.map(({ label }, i) => (
+          <div key={i} className="flex-1 text-center min-w-0">
+            <span className="text-[10px] text-foreground/40 block leading-none">{label}</span>
+            <span className="text-[10px] text-foreground/25 block mt-0.5 leading-none">
+              {data[i] > 0 ? data[i] : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminAnalytics() {
   const { orders, reservations, testimonials, visitLog, menuItems } = useRestaurantStore();
 
@@ -33,18 +72,11 @@ export default function AdminAnalytics() {
 
   const ordersPerDay = days.map(({ key }) => orders.filter((o) => o.orderedAt.slice(0, 10) === key).length);
   const visitsPerDay = days.map(({ key }) => visitLog.filter((v) => v.slice(0, 10) === key).length);
-  const maxOrder = Math.max(1, ...ordersPerDay);
-  const maxVisit = Math.max(1, ...visitsPerDay);
   const totalVisitsThisWeek = visitsPerDay.reduce((a, b) => a + b, 0);
 
-  const totalRevenue = orders
-    .filter((o) => o.status === "completed")
-    .reduce((sum, o) => sum + o.totalAmount, 0);
-
-  const avgOrderValue =
-    orders.filter((o) => o.status === "completed").length > 0
-      ? totalRevenue / orders.filter((o) => o.status === "completed").length
-      : 0;
+  const completedOrders = orders.filter((o) => o.status === "completed");
+  const totalRevenue = completedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const avgOrderValue = completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
 
   const avgRating =
     testimonials.length > 0
@@ -55,128 +87,126 @@ export default function AdminAnalytics() {
     .filter((r) => r.status === "confirmed")
     .reduce((sum, r) => sum + r.guests, 0);
 
+  const revenueByStatus = (["completed", "preparing", "new", "ready", "cancelled"] as const).map((status) => ({
+    status,
+    rev: orders.filter((o) => o.status === status).reduce((s, o) => s + o.totalAmount, 0),
+  }));
+
+  const statusColors: Record<string, string> = {
+    completed: "bg-primary",
+    preparing: "bg-amber-400",
+    new: "bg-blue-400",
+    ready: "bg-emerald-400",
+    cancelled: "bg-red-400",
+  };
+
   return (
     <AdminLayout
       title="Analytics"
       subtitle="Performance overview — live data from the last 7 days"
     >
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard
           label="Total Revenue"
           value={formatCurrency(totalRevenue)}
           icon={DollarSign}
-          trend="Completed orders"
+          trend={`${completedOrders.length} completed`}
           trendUp
+          valueClassName="text-xl sm:text-2xl"
         />
         <StatCard
           label="Total Orders"
           value={orders.length}
           icon={ShoppingBag}
-          trend={`${orders.filter((o) => o.status === "completed").length} completed`}
+          trend={`${completedOrders.length} completed`}
           trendUp
+          valueClassName="text-xl sm:text-2xl"
         />
         <StatCard
-          label="Total Reservations"
+          label="Reservations"
           value={reservations.length}
           icon={CalendarCheck}
-          trend={`${totalGuests} guests hosted`}
+          trend={`${totalGuests} guests`}
           trendUp
+          valueClassName="text-xl sm:text-2xl"
         />
         <StatCard
           label="Avg Rating"
-          value={avgRating.toFixed(1)}
+          value={testimonials.length > 0 ? avgRating.toFixed(1) : "—"}
           icon={Star}
-          trend={`from ${testimonials.length} reviews`}
+          trend={`${testimonials.length} reviews`}
           trendUp
+          valueClassName="text-xl sm:text-2xl"
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            Website Visits (This Week)
-          </h2>
-          <p className="text-xs text-foreground/40 mb-5">{totalVisitsThisWeek} visits tracked in the last 7 days</p>
-          <div className="flex items-end gap-2 h-40">
-            {visitsPerDay.map((v, i) => (
-              <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1">
-                <span className="text-[10px] text-foreground/40">{v}</span>
-                <div
-                  className="w-full rounded-t-sm bg-primary/30 hover:bg-primary/50 transition-colors min-h-[2px]"
-                  style={{ height: `${(v / maxVisit) * 100}%` }}
-                />
-                <span className="text-[10px] text-foreground/40">{days[i].label}</span>
-              </div>
-            ))}
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="w-4 h-4 text-primary shrink-0" />
+            <h2 className="text-sm font-semibold text-foreground">Website Visits</h2>
           </div>
+          <p className="text-xs text-foreground/40 mb-4">
+            {totalVisitsThisWeek} visits tracked in the last 7 days
+          </p>
+          <BarChart data={visitsPerDay} days={days} color="bg-primary/35" hoverColor="bg-primary/55" />
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
-            <ShoppingBag className="w-4 h-4 text-primary" />
-            Orders Per Day (This Week)
-          </h2>
-          <p className="text-xs text-foreground/40 mb-5">Live count of real orders placed each day</p>
-          <div className="flex items-end gap-2 h-40">
-            {ordersPerDay.map((v, i) => (
-              <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1">
-                <span className="text-[10px] text-foreground/40">{v}</span>
-                <div
-                  className="w-full rounded-t-sm bg-emerald-500/30 hover:bg-emerald-500/50 transition-colors min-h-[2px]"
-                  style={{ height: `${(v / maxOrder) * 100}%` }}
-                />
-                <span className="text-[10px] text-foreground/40">{days[i].label}</span>
-              </div>
-            ))}
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <ShoppingBag className="w-4 h-4 text-primary shrink-0" />
+            <h2 className="text-sm font-semibold text-foreground">Orders Per Day</h2>
           </div>
+          <p className="text-xs text-foreground/40 mb-4">Live count of orders placed each day</p>
+          <BarChart data={ordersPerDay} days={days} color="bg-emerald-500/35" hoverColor="bg-emerald-500/55" />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-primary" />
-            Revenue by Order Status
-          </h2>
-          {(["completed", "preparing", "new", "ready", "cancelled"] as const).map((status) => {
-            const rev = orders.filter((o) => o.status === status).reduce((s, o) => s + o.totalAmount, 0);
-            const pct = totalRevenue > 0 ? (rev / (totalRevenue || 1)) * 100 : 0;
-            const colors: Record<string, string> = {
-              completed: "bg-primary",
-              preparing: "bg-amber-400",
-              new: "bg-blue-400",
-              ready: "bg-emerald-400",
-              cancelled: "bg-red-400",
-            };
-            return (
-              <div key={status} className="mb-3">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="capitalize text-foreground/60">{status}</span>
-                  <span className="text-foreground">{formatCurrency(rev)}</span>
+      {/* Revenue breakdown + key metrics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <DollarSign className="w-4 h-4 text-primary shrink-0" />
+            <h2 className="text-sm font-semibold text-foreground">Revenue by Order Status</h2>
+          </div>
+          <div className="space-y-3">
+            {revenueByStatus.map(({ status, rev }) => {
+              const pct = totalRevenue > 0 ? (rev / totalRevenue) * 100 : 0;
+              return (
+                <div key={status}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="capitalize text-foreground/60">{status}</span>
+                    <span className="text-foreground font-medium">{formatCurrency(rev)}</span>
+                  </div>
+                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full transition-all", statusColors[status])}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div className={cn("h-full rounded-full", colors[status])} style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" />
-            Key Metrics
-          </h2>
-          <div className="space-y-4">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-4 h-4 text-primary shrink-0" />
+            <h2 className="text-sm font-semibold text-foreground">Key Metrics</h2>
+          </div>
+          <div className="space-y-0">
             {[
               { label: "Average Order Value", value: formatCurrency(avgOrderValue) },
-              { label: "Avg Guest Rating", value: `${avgRating.toFixed(1)} / 5.0` },
+              { label: "Avg Guest Rating", value: testimonials.length > 0 ? `${avgRating.toFixed(1)} / 5.0` : "No reviews yet" },
               { label: "Confirmed Reservations", value: reservations.filter((r) => r.status === "confirmed").length.toString() },
               { label: "Pending Reservations", value: reservations.filter((r) => r.status === "pending").length.toString() },
               { label: "Active Menu Items", value: `${menuItems.filter((m) => m.available).length} items` },
+              { label: "Total Guests Hosted", value: totalGuests.toString() },
             ].map(({ label, value }) => (
-              <div key={label} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+              <div key={label} className="flex justify-between items-center py-2.5 border-b border-white/5 last:border-0">
                 <span className="text-sm text-foreground/60">{label}</span>
                 <span className="text-sm font-medium text-foreground">{value}</span>
               </div>
