@@ -219,10 +219,32 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-size: var(--base-font-size, 16px);
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
+    font-weight: var(--heading-weight, 500);
   }
+}
+
+/* ── Design Tokens: buttons / layout / animation hooks ─────────────────────── */
+.btn-token-hover:hover:not(:disabled) {
+  background-color: hsl(var(--btn-hover, var(--btn-bg))) !important;
+}
+
+.container {
+  max-width: var(--container-max-width, 80rem);
+}
+
+section[class*="py-16"],
+section[class*="py-24"] {
+  padding-top: var(--section-spacing, 4rem);
+  padding-bottom: var(--section-spacing, 4rem);
+}
+
+body.animations-disabled * {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
 }
 
 @layer utilities {

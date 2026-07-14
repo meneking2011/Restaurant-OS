@@ -2,14 +2,19 @@ import { Link } from "wouter";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { motion } from "framer-motion";
+import { sectionBackgroundStyle, hasSectionOverlay } from "@/utils/sectionMedia";
 
 export function FeaturedDishes() {
-  const { menuItems } = useRestaurantStore();
+  const { menuItems, sectionMedia } = useRestaurantStore();
+  const media = sectionMedia.featuredDishes;
   const featured = menuItems.filter(item => item.featured).slice(0, 4);
 
   return (
-    <SectionContainer className="bg-background pt-2 pb-0">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border/30">
+    <SectionContainer className="relative bg-background pt-2 pb-0 overflow-hidden" style={sectionBackgroundStyle(media)}>
+      {hasSectionOverlay(media) && (
+        <div className="absolute inset-0" style={{ backgroundColor: media.overlayColor, opacity: media.overlayOpacity / 100 }} />
+      )}
+      <div className="relative grid grid-cols-1 md:grid-cols-2 gap-px bg-border/30">
         {featured.map((dish, index) => (
           <motion.div
             key={dish.id}

@@ -29,7 +29,7 @@ const AdminGallery = lazy(() => import("@/admin/pages/AdminGallery"));
 const AdminAnalytics = lazy(() => import("@/admin/pages/AdminAnalytics"));
 const AdminBusinessDetails = lazy(() => import("@/admin/pages/AdminBusinessDetails"));
 const AdminSettings = lazy(() => import("@/admin/pages/AdminSettings"));
-const AdminTheme = lazy(() => import("@/admin/pages/AdminTheme"));
+const AdminDesignTokens = lazy(() => import("@/admin/pages/AdminDesignTokens"));
 const AdminMediaLibrary = lazy(() => import("@/admin/pages/AdminMediaLibrary"));
 const AdminPages = lazy(() => import("@/admin/pages/AdminPages"));
 const AdminNavigation = lazy(() => import("@/admin/pages/AdminNavigation"));
@@ -101,7 +101,7 @@ function Router() {
         <Route path="/admin/orders" component={AdminOrders} />
         <Route path="/admin/gallery" component={AdminGallery} />
         <Route path="/admin/media" component={AdminMediaLibrary} />
-        <Route path="/admin/theme" component={AdminTheme} />
+        <Route path="/admin/design-tokens" component={AdminDesignTokens} />
         <Route path="/admin/navigation" component={AdminNavigation} />
         <Route path="/admin/pages" component={AdminPages} />
         <Route path="/admin/services" component={AdminServices} />

@@ -6,15 +6,23 @@ import { TestimonialsSection } from "@/components/sections/TestimonialsSection";
 import { CTASection } from "@/components/sections/CTASection";
 import { ImageComponent } from "@/components/ui/ImageComponent";
 import { motion } from "framer-motion";
+import { useRestaurantStore } from "@/store/restaurantStore";
+import { sectionBackgroundStyle, hasSectionOverlay } from "@/utils/sectionMedia";
 
 export default function AboutPage() {
+  const media = useRestaurantStore((s) => s.sectionMedia.about);
+
   useEffect(() => {
     document.title = "About Us | Reassurance";
   }, []);
 
   return (
     <Layout>
-      <SectionContainer className="bg-background pt-12 md:pt-20">
+      <SectionContainer className="relative bg-background pt-12 md:pt-20 overflow-hidden" style={sectionBackgroundStyle(media)}>
+        {hasSectionOverlay(media) && (
+          <div className="absolute inset-0" style={{ backgroundColor: media.overlayColor, opacity: media.overlayOpacity / 100 }} />
+        )}
+        <div className="relative">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-20">
           <h1 className="font-serif text-4xl md:text-6xl font-medium tracking-widest uppercase mb-6">
             Our Story
@@ -87,6 +95,7 @@ export default function AboutPage() {
               <p className="text-muted-foreground">{pillar.text}</p>
             </motion.div>
           ))}
+        </div>
         </div>
       </SectionContainer>
       

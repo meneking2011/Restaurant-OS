@@ -3,6 +3,7 @@ import { useRestaurantStore } from "@/store/restaurantStore";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { Leaf, GlassWater, Bell } from "lucide-react";
 import { motion } from "framer-motion";
+import { sectionBackgroundStyle, hasSectionOverlay } from "@/utils/sectionMedia";
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   leaf: <Leaf className="w-6 h-6" />,
@@ -11,10 +12,14 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 export function ServicesPreview() {
-  const { services } = useRestaurantStore();
+  const { services, sectionMedia } = useRestaurantStore();
+  const media = sectionMedia.services;
   return (
-    <SectionContainer className="bg-card border-t border-border">
-      <div className="flex flex-col items-center text-center mb-14">
+    <SectionContainer className="relative bg-card border-t border-border overflow-hidden" style={sectionBackgroundStyle(media)}>
+      {hasSectionOverlay(media) && (
+        <div className="absolute inset-0" style={{ backgroundColor: media.overlayColor, opacity: media.overlayOpacity / 100 }} />
+      )}
+      <div className="relative flex flex-col items-center text-center mb-14">
         <h2 className="font-serif text-3xl md:text-5xl tracking-widest uppercase mb-4">
           Our Services
         </h2>
@@ -23,7 +28,7 @@ export function ServicesPreview() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border/30 mb-14">
+      <div className="relative grid grid-cols-1 md:grid-cols-3 gap-px bg-border/30 mb-14">
         {services.map((service, index) => (
           <motion.div
             key={service.id}
@@ -47,7 +52,7 @@ export function ServicesPreview() {
         ))}
       </div>
 
-      <div className="flex justify-center">
+      <div className="relative flex justify-center">
         <Link
           href="/services"
           className="inline-flex items-center gap-3 text-xs uppercase tracking-[0.25em] text-primary border border-primary/30 hover:border-primary hover:bg-primary/10 transition-all duration-300 px-10 py-4"

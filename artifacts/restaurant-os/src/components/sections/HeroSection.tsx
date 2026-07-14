@@ -4,11 +4,14 @@ import { useRestaurantStore } from "@/store/restaurantStore";
 import { motion } from "framer-motion";
 
 export function HeroSection() {
-  const { config, siteTheme } = useRestaurantStore();
+  const { config, siteTheme, sectionMedia } = useRestaurantStore();
+  const media = sectionMedia.hero;
 
-  const bgImage = siteTheme.heroImageUrl || config.heroImage;
+  const bgImage = media.backgroundImage || siteTheme.heroImageUrl || config.heroImage;
   const hasVideo = Boolean(siteTheme.heroVideoUrl);
-  const overlayOpacity = (siteTheme.heroOverlayOpacity ?? 60) / 100;
+  const overlayOpacity = media.backgroundImage
+    ? media.overlayOpacity / 100
+    : (siteTheme.heroOverlayOpacity ?? 60) / 100;
 
   const btnRadius =
     siteTheme.buttonStyle === "pill"  ? "9999px" :
@@ -39,7 +42,7 @@ export function HeroSection() {
 
       <div
         className="absolute inset-0 z-[1]"
-        style={{ background: `rgba(0,0,0,${overlayOpacity * 0.7})` }}
+        style={{ background: media.backgroundImage ? media.overlayColor : `rgba(0,0,0,${overlayOpacity * 0.7})`, opacity: media.backgroundImage ? overlayOpacity : 1 }}
       />
       <div className="absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-transparent to-background" />
 

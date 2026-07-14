@@ -12,6 +12,9 @@ import {
   QuickControls,
   ActivityLogEntry,
   CustomPage,
+  DesignTokenPage,
+  SectionKey,
+  SectionMediaConfig,
 } from "../types/restaurant";
 import {
   restaurantConfig as initialConfig,
@@ -97,6 +100,31 @@ const defaultSiteTheme: SiteTheme = {
   heroImageUrl: "",
   heroVideoUrl: "",
   heroOverlayOpacity: 60,
+
+  surfaceHex: "#1a1614",
+  borderHex: "#2a241f",
+  buttonBgHex: "#d4a853",
+  buttonHoverHex: "#e8bd6a",
+  footerBgHex: "#0d0b09",
+  footerTextHex: "#8a7d6b",
+  baseFontSizePx: 16,
+  headingWeight: "medium",
+  cardRadius: 4,
+  cardShadowIntensity: 40,
+  containerWidth: "default",
+  sectionSpacing: "comfortable",
+  animationsEnabled: true,
+  animationSpeed: "normal",
+};
+
+const defaultSectionMedia: Record<SectionKey, SectionMediaConfig> = {
+  hero:           { images: [], backgroundImage: "", overlayColor: "#000000", overlayOpacity: 40, backgroundColor: "", useBackgroundColor: false },
+  featuredDishes: { images: [], backgroundImage: "", overlayColor: "#000000", overlayOpacity: 0,  backgroundColor: "", useBackgroundColor: false },
+  about:          { images: [], backgroundImage: "", overlayColor: "#000000", overlayOpacity: 0,  backgroundColor: "", useBackgroundColor: false },
+  services:       { images: [], backgroundImage: "", overlayColor: "#000000", overlayOpacity: 0,  backgroundColor: "", useBackgroundColor: false },
+  gallery:        { images: [], backgroundImage: "", overlayColor: "#000000", overlayOpacity: 0,  backgroundColor: "", useBackgroundColor: false },
+  cta:            { images: [], backgroundImage: "", overlayColor: "#000000", overlayOpacity: 40, backgroundColor: "", useBackgroundColor: false },
+  footer:         { images: [], backgroundImage: "", overlayColor: "#000000", overlayOpacity: 0,  backgroundColor: "", useBackgroundColor: false },
 };
 
 const defaultAdminTheme: AdminTheme = {
@@ -163,12 +191,17 @@ interface RestaurantStore {
   reservationSettings: ReservationSettings;
   customPages: CustomPage[];
   visitLog: string[];
+  themeOverrides: Partial<Record<DesignTokenPage, Partial<SiteTheme>>>;
+  sectionMedia: Record<SectionKey, SectionMediaConfig>;
 
   _historyPast: StoreSnapshot[];
   _historyFuture: StoreSnapshot[];
 
   updateConfig: (config: Partial<RestaurantConfig>) => void;
   updateSiteTheme: (theme: Partial<SiteTheme>) => void;
+  updateThemeOverride: (page: DesignTokenPage, theme: Partial<SiteTheme>) => void;
+  clearThemeOverride: (page: DesignTokenPage) => void;
+  updateSectionMedia: (section: SectionKey, media: Partial<SectionMediaConfig>) => void;
   updateAdminTheme: (theme: Partial<AdminTheme>) => void;
   updateQuickControls: (controls: Partial<QuickControls>) => void;
   addActivityLog: (entry: Omit<ActivityLogEntry, "id" | "timestamp">) => void;
@@ -247,6 +280,8 @@ export const useRestaurantStore = create<RestaurantStore>()(
       reservationSettings: defaultReservationSettings,
       customPages: [],
       visitLog: [],
+      themeOverrides: {},
+      sectionMedia: defaultSectionMedia,
 
       _historyPast: [],
       _historyFuture: [],
@@ -262,6 +297,17 @@ export const useRestaurantStore = create<RestaurantStore>()(
 
       logVisit: () => set((s) => ({ visitLog: [...s.visitLog.slice(-999), new Date().toISOString()] })),
       updateSiteTheme: (theme) => set((s) => ({ siteTheme: { ...s.siteTheme, ...theme } })),
+      updateThemeOverride: (page, theme) => set((s) => ({
+        themeOverrides: { ...s.themeOverrides, [page]: { ...(s.themeOverrides[page] ?? {}), ...theme } },
+      })),
+      clearThemeOverride: (page) => set((s) => {
+        const next = { ...s.themeOverrides };
+        delete next[page];
+        return { themeOverrides: next };
+      }),
+      updateSectionMedia: (section, media) => set((s) => ({
+        sectionMedia: { ...s.sectionMedia, [section]: { ...s.sectionMedia[section], ...media } },
+      })),
       updateAdminTheme: (theme) => set((s) => ({ adminTheme: { ...s.adminTheme, ...theme } })),
       updateQuickControls: (controls) => set((s) => ({ quickControls: { ...s.quickControls, ...controls } })),
       addActivityLog: (entry) => set((s) => ({

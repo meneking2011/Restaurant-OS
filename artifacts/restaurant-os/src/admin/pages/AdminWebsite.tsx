@@ -6,10 +6,10 @@ import { Globe, FileText, Navigation, Palette, Image, BarChart3, ExternalLink } 
 const websiteModules = [
   { label: "Pages Manager", description: "Control page visibility, routes, and display settings", icon: FileText, href: "/admin/pages", color: "text-blue-400 bg-blue-400/10" },
   { label: "Navigation Manager", description: "Edit hamburger menu links and their order", icon: Navigation, href: "/admin/navigation", color: "text-purple-400 bg-purple-400/10" },
-  { label: "Theme Manager", description: "Customize colors, fonts, buttons and appearance", icon: Palette, href: "/admin/theme", color: "text-primary bg-primary/10" },
+  { label: "Design Tokens", description: "Customize colors, fonts, buttons, cards and appearance", icon: Palette, href: "/admin/design-tokens", color: "text-primary bg-primary/10" },
   { label: "Media Library", description: "Manage all images, files and uploads", icon: Image, href: "/admin/media", color: "text-emerald-400 bg-emerald-400/10" },
   { label: "Analytics", description: "Track visits, orders and customer behavior", icon: BarChart3, href: "/admin/analytics", color: "text-amber-400 bg-amber-400/10" },
-  { label: "Business Details", description: "Update restaurant profile, hours, and contact info", icon: Globe, href: "/admin/business", color: "text-rose-400 bg-rose-400/10" },
+  { label: "Restaurant Profile", description: "Update restaurant profile, hours, and contact info", icon: Globe, href: "/admin/business", color: "text-rose-400 bg-rose-400/10" },
 ];
 
 export default function AdminWebsite() {

@@ -1,16 +1,29 @@
 import { Link } from "wouter";
 import { Flame } from "lucide-react";
 import { useRestaurantStore } from "@/store/restaurantStore";
+import { sectionBackgroundStyle, hasSectionOverlay } from "@/utils/sectionMedia";
 
 export function Footer() {
   const config   = useRestaurantStore((s) => s.config);
   const navLinks = useRestaurantStore((s) => s.navLinks);
+  const media    = useRestaurantStore((s) => s.sectionMedia.footer);
 
   const visibleLinks = navLinks.filter((l) => l.visible);
 
   return (
-    <footer className="bg-background border-t border-border py-12 md:py-16">
-      <div className="container mx-auto px-4 md:px-8 max-w-7xl">
+    <footer
+      className="relative border-t py-12 md:py-16 overflow-hidden"
+      style={{
+        backgroundColor: "hsl(var(--footer-bg, var(--background)))",
+        color: "hsl(var(--footer-fg, var(--muted-foreground)))",
+        borderColor: "hsl(var(--border))",
+        ...sectionBackgroundStyle(media),
+      }}
+    >
+      {hasSectionOverlay(media) && (
+        <div className="absolute inset-0" style={{ backgroundColor: media.overlayColor, opacity: media.overlayOpacity / 100 }} />
+      )}
+      <div className="relative container mx-auto px-4 md:px-8 max-w-7xl">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
 
           <div className="flex justify-center md:justify-start">
@@ -37,7 +50,7 @@ export function Footer() {
 
         </div>
 
-        <div className="mt-12 pt-8 border-t border-border text-center text-xs text-muted-foreground">
+        <div className="mt-12 pt-8 border-t border-border text-center text-xs" style={{ color: "hsl(var(--footer-fg, var(--muted-foreground)))" }}>
           &copy; {new Date().getFullYear()} {config.name}. All rights reserved.
         </div>
       </div>
