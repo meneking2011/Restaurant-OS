@@ -8,12 +8,11 @@ import { useRestaurantStore } from "@/store/restaurantStore";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { ImageComponent } from "@/components/ui/ImageComponent";
 import { Link } from "wouter";
-import { Minus, Plus, Trash2, CreditCard, Building, ShoppingBag, Clock, ChefHat, PackageCheck, CheckCircle2, XCircle } from "lucide-react";
+import { Minus, Plus, Trash2, Building, ShoppingBag, Clock, ChefHat, PackageCheck, CheckCircle2, XCircle, CreditCard, Wallet, Banknote, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { PAYMENT_METHODS, PAYMENT_PROVIDERS } from "@/types/restaurant";
+import type { PaymentMethodId } from "@/types/restaurant";
 
-// Tracks the visitor's own active order for the lifetime of this browser tab.
-// sessionStorage clears automatically when the tab/page is fully closed, so
-// the order stays visible across in-app navigation but not across a fresh visit.
 const ACTIVE_ORDER_KEY = "ros_active_order_id";
 
 const STATUS_META: Record<string, { label: string; icon: typeof Clock; color: string }> = {
@@ -24,10 +23,16 @@ const STATUS_META: Record<string, { label: string; icon: typeof Clock; color: st
   cancelled: { label: "Cancelled",       icon: XCircle,        color: "text-red-400" },
 };
 
+const METHOD_ICONS: Record<PaymentMethodId, typeof CreditCard> = {
+  card:           CreditCard,
+  bankTransfer:   Building,
+  mobileWallet:   Wallet,
+  cashOnDelivery: Banknote,
+};
+
 export default function CheckoutPage() {
   const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
-  const { addOrder, quickControls, config, deliverySettings, orders } = useRestaurantStore();
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "bank">("card");
+  const { addOrder, quickControls, config, deliverySettings, orders, paymentSettings } = useRestaurantStore();
   const [activeOrderId, setActiveOrderId] = useState<string | null>(() => sessionStorage.getItem(ACTIVE_ORDER_KEY));
   const [customerName, setCustomerName] = useState("");
 
@@ -39,13 +44,33 @@ export default function CheckoutPage() {
   const [instructions, setInstructions] = useState("");
   const [formError, setFormError] = useState("");
 
+  // Derive enabled payment methods from admin settings
+  const enabledMethods = PAYMENT_METHODS.filter((m) => paymentSettings.methodsEnabled[m.key]);
+  const activeProvider = paymentSettings.activeProvider
+    ? PAYMENT_PROVIDERS.find((p) => p.id === paymentSettings.activeProvider) ?? null
+    : null;
+
+  // Online payment methods (card / wallet) require a connected provider
+  const availableMethods = enabledMethods.filter((m) => {
+    if (m.key === "cashOnDelivery" || m.key === "bankTransfer") return true;
+    return activeProvider !== null && activeProvider.supportedMethods.includes(m.key);
+  });
+
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodId | null>(null);
+
+  // Auto-select when available methods change
+  useEffect(() => {
+    if (availableMethods.length > 0 && (paymentMethod === null || !availableMethods.find((m) => m.key === paymentMethod))) {
+      setPaymentMethod(availableMethods[0].key);
+    } else if (availableMethods.length === 0) {
+      setPaymentMethod(null);
+    }
+  }, [availableMethods.length]);
+
   useEffect(() => {
     document.title = `Checkout | ${config.name}`;
   }, [config.name]);
 
-  // The order this visitor placed, kept alive in sessionStorage. It stays
-  // visible whenever they return to this page in the same tab, and reflects
-  // live status updates made from the admin panel.
   const activeOrder = activeOrderId ? orders.find((o) => o.id === activeOrderId) ?? null : null;
 
   const taxRate     = deliverySettings?.taxRate     ?? 0.08;
@@ -64,6 +89,10 @@ export default function CheckoutPage() {
       setFormError("Please fill in all required fields.");
       return;
     }
+    if (!paymentMethod) {
+      setFormError("Please select a payment method.");
+      return;
+    }
     setFormError("");
 
     const newOrderId = addOrder({
@@ -78,7 +107,8 @@ export default function CheckoutPage() {
         quantity: ci.quantity,
         price: ci.menuItem.price,
       })),
-      paymentMethod,
+      paymentMethod: paymentMethod,
+      paymentStatus: "unpaid" as const,
       subtotal,
       deliveryFee,
       tax,
@@ -92,7 +122,6 @@ export default function CheckoutPage() {
     window.scrollTo(0, 0);
   };
 
-  // Restaurant closed, or online orders disabled
   if (!quickControls.restaurantOpen || !quickControls.onlineOrders) {
     const closedForBusiness = !quickControls.restaurantOpen;
     return (
@@ -123,8 +152,6 @@ export default function CheckoutPage() {
     );
   }
 
-  // This visitor has an active order for this browser tab — keep showing its
-  // live status (even across in-app navigation) until they close the page.
   if (activeOrder) {
     const meta = STATUS_META[activeOrder.status];
     const StatusIcon = meta.icon;
@@ -315,59 +342,56 @@ export default function CheckoutPage() {
                   <h2 className="text-sm font-medium tracking-widest uppercase text-muted-foreground mb-4">
                     Payment Method
                   </h2>
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("card")}
-                      className={`flex flex-col items-center justify-center gap-2 p-4 border rounded-none transition-colors ${
-                        paymentMethod === "card"
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/50"
-                      }`}
-                    >
-                      <CreditCard className="w-6 h-6" />
-                      <span className="text-xs uppercase tracking-widest">Credit Card</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("bank")}
-                      className={`flex flex-col items-center justify-center gap-2 p-4 border rounded-none transition-colors ${
-                        paymentMethod === "bank"
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/50"
-                      }`}
-                    >
-                      <Building className="w-6 h-6" />
-                      <span className="text-xs uppercase tracking-widest">Bank Transfer</span>
-                    </button>
-                  </div>
 
-                  {paymentMethod === "card" && (
-                    <div className="flex flex-col gap-4">
-                      <Input
-                        required
-                        placeholder="Card Number"
-                        className="bg-background border-border rounded-none h-12"
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <Input
-                          required
-                          placeholder="MM/YY"
-                          className="bg-background border-border rounded-none h-12"
-                        />
-                        <Input
-                          required
-                          placeholder="CVV"
-                          className="bg-background border-border rounded-none h-12"
-                        />
-                      </div>
+                  {availableMethods.length === 0 ? (
+                    <div className="flex items-start gap-3 p-4 border border-border bg-background text-sm text-muted-foreground">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                      <span>Online payments are not available at the moment. Please contact us to arrange payment.</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3 mb-4">
+                      {availableMethods.map((method) => {
+                        const Icon = METHOD_ICONS[method.key];
+                        const isSelected = paymentMethod === method.key;
+                        return (
+                          <button
+                            key={method.key}
+                            type="button"
+                            onClick={() => setPaymentMethod(method.key)}
+                            className={`flex items-center gap-3 p-4 border rounded-none transition-colors text-left ${
+                              isSelected
+                                ? "border-primary bg-primary/5 text-primary"
+                                : "border-border text-muted-foreground hover:border-primary/50"
+                            }`}
+                          >
+                            <Icon className="w-5 h-5 shrink-0" />
+                            <div>
+                              <p className="text-xs uppercase tracking-widest font-medium">{method.label}</p>
+                              <p className="text-xs opacity-70 mt-0.5">{method.description}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
 
-                  {paymentMethod === "bank" && (
+                  {/* Per-method details */}
+                  {paymentMethod === "bankTransfer" && (
                     <div className="text-sm text-muted-foreground bg-background p-4 border border-border">
                       Bank transfer instructions will be sent to your email. Your order will be
                       prepared once payment is confirmed.
+                    </div>
+                  )}
+
+                  {paymentMethod === "cashOnDelivery" && (
+                    <div className="text-sm text-muted-foreground bg-background p-4 border border-border">
+                      Please have the exact amount ready when the order arrives.
+                    </div>
+                  )}
+
+                  {(paymentMethod === "card" || paymentMethod === "mobileWallet") && activeProvider && (
+                    <div className="text-sm text-muted-foreground bg-background p-4 border border-border">
+                      You will be securely redirected to {activeProvider.name} to complete payment after placing your order.
                     </div>
                   )}
                 </div>
@@ -402,10 +426,11 @@ export default function CheckoutPage() {
 
                   <Button
                     type="submit"
-                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-14 rounded-none tracking-widest uppercase font-semibold"
+                    disabled={availableMethods.length === 0 || paymentMethod === null}
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-14 rounded-none tracking-widest uppercase font-semibold disabled:opacity-50"
                     data-testid="button-place-order"
                   >
-                    Place Order & Pay {formatCurrency(total)}
+                    {availableMethods.length === 0 ? "No Payment Method Available" : `Place Order & Pay ${formatCurrency(total)}`}
                   </Button>
                 </div>
               </form>

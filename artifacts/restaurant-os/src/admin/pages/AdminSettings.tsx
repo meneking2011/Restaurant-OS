@@ -3,8 +3,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRestaurantStore } from "@/store/restaurantStore";
+import { PAYMENT_PROVIDERS, PAYMENT_METHODS } from "@/types/restaurant";
+import type { PaymentProviderId } from "@/types/restaurant";
 import { AdminLayout } from "../layout/AdminLayout";
-import { Save, User, CreditCard, Bell, Shield, HardDrive, Users, RefreshCw, Palette } from "lucide-react";
+import { Save, User, CreditCard, Bell, Shield, HardDrive, RefreshCw, Palette, CheckCircle2, Link, Unlink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hexToHsl } from "@/utils/colorUtils";
 
@@ -172,14 +174,15 @@ function GeneralTab() {
 }
 
 function PaymentsTab() {
-  const { deliverySettings, updateDeliverySettings } = useRestaurantStore();
-  const [enableCard, setEnableCard] = useState(true);
-  const [enableBank, setEnableBank] = useState(true);
-  const [enableCash, setEnableCash] = useState(false);
+  const {
+    deliverySettings, updateDeliverySettings,
+    paymentSettings, updatePaymentMethods, connectPaymentProvider, disconnectPaymentProvider, setActivePaymentProvider,
+  } = useRestaurantStore();
   const [fee,      setFee]      = useState(String(deliverySettings.fee));
   const [minOrder, setMinOrder] = useState(String(deliverySettings.minOrder));
   const [taxRate,  setTaxRate]  = useState(String((deliverySettings.taxRate * 100).toFixed(1)));
   const [saved, setSaved] = useState(false);
+  const [connecting, setConnecting] = useState<PaymentProviderId | null>(null);
 
   const handleSave = () => {
     updateDeliverySettings({
@@ -191,21 +194,118 @@ function PaymentsTab() {
     setTimeout(() => setSaved(false), 2500);
   };
 
+  const handleConnect = async (providerId: PaymentProviderId) => {
+    setConnecting(providerId);
+    await new Promise((r) => setTimeout(r, 800));
+    connectPaymentProvider(providerId, {
+      connected: true,
+      accountLabel: `${PAYMENT_PROVIDERS.find((p) => p.id === providerId)?.name} Account`,
+      connectedAt: new Date().toISOString(),
+    });
+    setActivePaymentProvider(providerId);
+    setConnecting(null);
+  };
+
+  const handleDisconnect = (providerId: PaymentProviderId) => {
+    disconnectPaymentProvider(providerId);
+    if (paymentSettings.activeProvider === providerId) {
+      setActivePaymentProvider(null);
+    }
+  };
+
   return (
     <div className="space-y-5 max-w-2xl">
+      {/* Provider Cards */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Payment Providers</h3>
+          <p className="text-xs text-foreground/40 mt-0.5">Connect a payment provider to accept online payments. Only one active provider at a time.</p>
+        </div>
+        {PAYMENT_PROVIDERS.map((provider) => {
+          const connection = paymentSettings.connections[provider.id];
+          const isConnected = connection?.connected ?? false;
+          const isActive = paymentSettings.activeProvider === provider.id;
+          const isConnecting = connecting === provider.id;
+          return (
+            <div
+              key={provider.id}
+              className={cn(
+                "flex items-center justify-between p-4 rounded-lg border transition-colors",
+                isActive
+                  ? "border-primary/40 bg-primary/5"
+                  : "border-white/10 bg-white/3 hover:bg-white/5"
+              )}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-sm font-medium text-foreground">{provider.name}</span>
+                  {isConnected ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                      <CheckCircle2 className="w-2.5 h-2.5" />
+                      {isActive ? "Active" : "Connected"}
+                    </span>
+                  ) : provider.live ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      Connect Account
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white/5 text-foreground/40 border border-white/10">
+                      Coming Soon
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-foreground/40 truncate">{provider.description}</p>
+                {isConnected && connection?.accountLabel && (
+                  <p className="text-xs text-primary/80 mt-0.5">{connection.accountLabel}</p>
+                )}
+              </div>
+              <div className="ml-4 shrink-0">
+                {isConnected ? (
+                  <button
+                    onClick={() => handleDisconnect(provider.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400 border border-red-400/20 rounded-lg hover:bg-red-400/10 transition-colors"
+                  >
+                    <Unlink className="w-3 h-3" /> Disconnect
+                  </button>
+                ) : provider.live ? (
+                  <button
+                    onClick={() => handleConnect(provider.id)}
+                    disabled={isConnecting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-primary border border-primary/30 rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50"
+                  >
+                    <Link className="w-3 h-3" />
+                    {isConnecting ? "Connecting…" : "Connect"}
+                  </button>
+                ) : (
+                  <span className="text-xs text-foreground/25 px-3 py-1.5">Unavailable</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Payment Methods */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-foreground">Payment Methods</h3>
-        {[
-          { label: "Credit / Debit Card", sub: "Accept Visa, Mastercard, Amex", val: enableCard, set: setEnableCard },
-          { label: "Bank Transfer", sub: "Manual wire transfer", val: enableBank, set: setEnableBank },
-          { label: "Cash on Delivery", sub: "Pay when order arrives", val: enableCash, set: setEnableCash },
-        ].map(({ label, sub, val, set }) => (
-          <div key={label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-            <div><p className="text-sm text-foreground">{label}</p><p className="text-xs text-foreground/40">{sub}</p></div>
-            <Toggle checked={val} onChange={() => set(!val)} />
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Payment Methods</h3>
+          <p className="text-xs text-foreground/40 mt-0.5">Choose which methods customers can select at checkout.</p>
+        </div>
+        {PAYMENT_METHODS.map(({ key, label, description }) => (
+          <div key={key} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+            <div>
+              <p className="text-sm text-foreground">{label}</p>
+              <p className="text-xs text-foreground/40">{description}</p>
+            </div>
+            <Toggle
+              checked={paymentSettings.methodsEnabled[key]}
+              onChange={() => updatePaymentMethods({ [key]: !paymentSettings.methodsEnabled[key] })}
+            />
           </div>
         ))}
       </div>
+
+      {/* Checkout Settings */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-foreground">Checkout Settings</h3>
         <p className="text-xs text-foreground/40">These values flow directly to the customer checkout page.</p>
@@ -213,8 +313,9 @@ function PaymentsTab() {
         <div><label className="text-xs text-foreground/50 mb-1 block">Minimum Order Amount ($)</label><input type="number" step="0.01" value={minOrder} onChange={(e) => setMinOrder(e.target.value)} className={inputCls} /></div>
         <div><label className="text-xs text-foreground/50 mb-1 block">Tax Rate (%)</label><input type="number" step="0.1" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} className={inputCls} /></div>
       </div>
+
       <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors">
-        <Save className="w-3.5 h-3.5" /> {saved ? "Saved!" : "Save Changes"}
+        <Save className="w-3.5 h-3.5" /> {saved ? "Saved!" : "Save Checkout Settings"}
       </button>
     </div>
   );
@@ -254,7 +355,6 @@ function NotificationsTab() {
 
 function SecurityTab() {
   const store = useRestaurantStore();
-  const [toast2fa, setToast2fa] = useState("");
   const [restoreStatus, setRestoreStatus] = useState("");
   const restoreRef = useRef<HTMLInputElement>(null);
 
@@ -311,17 +411,6 @@ function SecurityTab() {
 
   return (
     <div className="space-y-5 max-w-2xl">
-      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-foreground">Two-Factor Authentication</h3>
-        <p className="text-xs text-foreground/50">Add an extra layer of security to your account.</p>
-        {toast2fa && <p className="text-xs text-emerald-400">{toast2fa}</p>}
-        <button
-          onClick={() => { setToast2fa("2FA setup instructions sent to your email."); setTimeout(() => setToast2fa(""), 4000); }}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-400/20 rounded-lg text-sm hover:bg-emerald-600/30 transition-colors"
-        >
-          <Shield className="w-3.5 h-3.5" /> Enable 2FA
-        </button>
-      </div>
       <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-foreground">Active Sessions</h3>
         <p className="text-xs text-foreground/50">You are currently signed in on 1 device.</p>

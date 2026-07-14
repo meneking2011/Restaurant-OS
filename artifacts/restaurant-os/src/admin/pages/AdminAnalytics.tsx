@@ -27,7 +27,7 @@ function lastSevenDays() {
 }
 
 export default function AdminAnalytics() {
-  const { orders, reservations, testimonials, visitLog } = useRestaurantStore();
+  const { orders, reservations, testimonials, visitLog, menuItems } = useRestaurantStore();
 
   const days = lastSevenDays();
 
@@ -174,7 +174,7 @@ export default function AdminAnalytics() {
               { label: "Avg Guest Rating", value: `${avgRating.toFixed(1)} / 5.0` },
               { label: "Confirmed Reservations", value: reservations.filter((r) => r.status === "confirmed").length.toString() },
               { label: "Pending Reservations", value: reservations.filter((r) => r.status === "pending").length.toString() },
-              { label: "Active Menu Items", value: `${useRestaurantStore.getState().menuItems.filter((m) => m.available).length} items` },
+              { label: "Active Menu Items", value: `${menuItems.filter((m) => m.available).length} items` },
             ].map(({ label, value }) => (
               <div key={label} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
                 <span className="text-sm text-foreground/60">{label}</span>
