@@ -131,6 +131,7 @@ export function PrintReceiptModal({ data, onClose }: PrintReceiptModalProps) {
                   <div className="flex justify-between"><span className="text-gray-500">Customer</span><span>{data.customerName}</span></div>
                   {data.phone && <div className="flex justify-between"><span className="text-gray-500">Phone</span><span>{data.phone}</span></div>}
                   {data.paymentMethod && <div className="flex justify-between"><span className="text-gray-500">Payment</span><span>{data.paymentMethod === "card" ? "Credit Card" : "Bank Transfer"}</span></div>}
+                  {data.deliveryAddress && <div className="flex justify-between"><span className="text-gray-500">Address</span><span className="truncate max-w-[160px] text-right">{data.deliveryAddress}</span></div>}
                 </div>
 
                 <div className="border-t border-dashed border-gray-300 my-2" />
@@ -273,6 +274,7 @@ function generateReceiptHtml(data: ReceiptData): string {
     <div class="row"><span class="label">Customer</span><span>${data.customerName}</span></div>
     ${data.phone ? `<div class="row"><span class="label">Phone</span><span>${data.phone}</span></div>` : ""}
     ${data.paymentMethod ? `<div class="row"><span class="label">Payment</span><span>${data.paymentMethod === "card" ? "Credit Card" : "Bank Transfer"}</span></div>` : ""}
+    ${data.deliveryAddress ? `<div class="row label"><span>Address</span><span style="text-align:right">${data.deliveryAddress}</span></div>` : ""}
     <div class="divider"></div>
     ${items}
     <div class="divider"></div>
