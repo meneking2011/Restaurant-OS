@@ -439,15 +439,6 @@ export default function AdminAnalytics() {
 
   return (
     <>
-      {/* Print-only styles injected inline */}
-      <style>{`
-        @media print {
-          body > *:not(#analytics-print-root) { display: none !important; }
-          #analytics-print-root { display: block !important; }
-          .no-print { display: none !important; }
-        }
-      `}</style>
-
       <AdminLayout
         title="Analytics"
         subtitle={`Business intelligence dashboard — ${rangeLabel}`}
@@ -479,23 +470,28 @@ export default function AdminAnalytics() {
       >
         <div id="analytics-print-root" ref={printRef}>
           {/* ── Date Filter ─────────────────────────────────────────────────── */}
-          <div className="flex flex-wrap items-center gap-2 mb-6 no-print">
-            {(["today", "week", "month", "year", "custom"] as DateFilter[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize",
-                  filter === f
-                    ? "bg-primary text-black"
-                    : "bg-white/5 border border-white/10 text-foreground/60 hover:text-foreground hover:border-white/20"
-                )}
-              >
-                {f === "today" ? "Today" : f === "week" ? "This Week" : f === "month" ? "This Month" : f === "year" ? "This Year" : "Custom"}
-              </button>
-            ))}
+          <div className="no-print mb-6">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {(["today", "week", "month", "year", "custom"] as DateFilter[]).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={cn(
+                    "shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                    filter === f
+                      ? "bg-primary text-black"
+                      : "bg-white/5 border border-white/10 text-foreground/60 hover:text-foreground hover:border-white/20"
+                  )}
+                >
+                  {f === "today" ? "Today" : f === "week" ? "This Week" : f === "month" ? "This Month" : f === "year" ? "This Year" : "Custom"}
+                </button>
+              ))}
+              <span className="text-xs text-foreground/30 ml-auto shrink-0 hidden sm:block">
+                Auto-updates with live data
+              </span>
+            </div>
             {filter === "custom" && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mt-2">
                 <input
                   type="date"
                   value={customStart}
@@ -511,15 +507,12 @@ export default function AdminAnalytics() {
                 />
               </div>
             )}
-            <span className="text-xs text-foreground/30 ml-auto hidden sm:block">
-              Auto-updates with live data
-            </span>
           </div>
 
           {/* ── Revenue KPIs ─────────────────────────────────────────────────── */}
           <div className="mb-3">
             <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-2 font-medium">Revenue</p>
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="kpi-grid grid grid-cols-2 lg:grid-cols-5 gap-3">
               <KpiCard
                 label="Total Revenue"
                 value={formatCurrency(totalRevenue)}
@@ -565,7 +558,7 @@ export default function AdminAnalytics() {
           {/* ── Orders KPIs ──────────────────────────────────────────────────── */}
           <div className="mb-3">
             <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-2 font-medium">Orders</p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="kpi-grid grid grid-cols-2 lg:grid-cols-4 gap-3">
               <KpiCard
                 label="Total Orders"
                 value={totalOrders}
@@ -604,7 +597,7 @@ export default function AdminAnalytics() {
           {/* ── Customers + Reservations KPIs ───────────────────────────────── */}
           <div className="mb-6">
             <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-2 font-medium">Customers & Reservations</p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="kpi-grid grid grid-cols-2 lg:grid-cols-4 gap-3">
               <KpiCard
                 label="Total Customers"
                 value={uniqueEmails.length}

@@ -1,5 +1,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
+
+/* ── Analytics print styles ──────────────────────────────────────────── */
+@media print {
+  body > *:not(#analytics-print-root) { display: none !important; }
+  #analytics-print-root { display: block !important; }
+  .no-print { display: none !important; }
+}
+
+/* ── Scrollbar hide utility ──────────────────────────────────────────── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Prevent mobile Chrome GPU compositing artifacts on KPI grids ────── */
+.kpi-grid {
+  isolation: isolate;
+  transform: translateZ(0);
+}
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
