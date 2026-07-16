@@ -47,6 +47,10 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 - The API server (`artifacts/api-server`) and Postgres DB are provisioned but unused — the restaurant app is 100% client-side/localStorage. Don't assume data survives across browsers/devices, or that admin changes are visible to other visitors, until this is wired up.
 - Before assuming a requested feature is missing, check `restaurantStore.ts` and the relevant page/admin component first — most "admin control center" features (reviews, notifications, closed-state gating, collapsible reservation settings, contact send options) are already implemented.
+- There are no card/wallet/OAuth payment gateways. Payment is exclusively Manual Bank Transfer — customers upload a receipt, admin verifies or rejects it. All payment gateway types (`stripe`, `paystack`, `flutterwave`, `square`, `paypal`) have been fully removed.
+- Order status now includes `out_for_delivery` and `delivered` (replaces `completed`). Payment status is its own field: `pending_receipt` → `pending_verification` → `verified` | `rejected`.
+- Bank accounts are managed in the store as `bankAccounts: BankAccount[]` (not as `config.bankAccount`). The admin can add/edit/delete/enable/disable multiple accounts in Settings → Payments & Checkout.
+- Receipt files are stored as base64 data URLs inside the order object in localStorage. This works for small receipts but will balloon storage for many high-res uploads — a backend upload solution is the right long-term fix.
 
 ## Pointers
 

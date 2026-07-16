@@ -7,6 +7,9 @@ import {
   Testimonial,
   GalleryImage,
   Order,
+  OrderStatus,
+  PaymentStatus,
+  BankAccount,
   SiteTheme,
   AdminTheme,
   QuickControls,
@@ -15,9 +18,6 @@ import {
   DesignTokenPage,
   SectionKey,
   SectionMediaConfig,
-  PaymentSettings,
-  PaymentProviderId,
-  PaymentProviderConnection,
 } from "../types/restaurant";
 import {
   restaurantConfig as initialConfig,
@@ -166,17 +166,6 @@ const defaultReservationSettings: ReservationSettings = {
   multipleLimit: 1,
 };
 
-const defaultPaymentSettings: PaymentSettings = {
-  activeProvider: null,
-  connections: {},
-  methodsEnabled: {
-    card: true,
-    bankTransfer: true,
-    mobileWallet: false,
-    cashOnDelivery: false,
-  },
-};
-
 const defaultNavLinks: NavLink[] = [
   { id: "home",         label: "HOME",              href: "/",            visible: true,  openInNewTab: false },
   { id: "menu",         label: "MENU",              href: "/menu",        visible: true,  openInNewTab: false },
@@ -196,6 +185,7 @@ interface RestaurantStore {
   reservations: Reservation[];
   galleryImages: GalleryImage[];
   orders: Order[];
+  bankAccounts: BankAccount[];
   siteTheme: SiteTheme;
   adminTheme: AdminTheme;
   quickControls: QuickControls;
@@ -203,7 +193,6 @@ interface RestaurantStore {
   navLinks: NavLink[];
   deliverySettings: DeliverySettings;
   reservationSettings: ReservationSettings;
-  paymentSettings: PaymentSettings;
   customPages: CustomPage[];
   visitLog: string[];
   themeOverrides: Partial<Record<DesignTokenPage, Partial<SiteTheme>>>;
@@ -223,11 +212,11 @@ interface RestaurantStore {
   updateNavLinks: (links: NavLink[]) => void;
   updateDeliverySettings: (settings: Partial<DeliverySettings>) => void;
   updateReservationSettings: (settings: Partial<ReservationSettings>) => void;
-  updatePaymentMethods: (methods: Partial<PaymentSettings["methodsEnabled"]>) => void;
-  connectPaymentProvider: (provider: PaymentProviderId, connection: PaymentProviderConnection) => void;
-  disconnectPaymentProvider: (provider: PaymentProviderId) => void;
-  setActivePaymentProvider: (provider: PaymentProviderId | null) => void;
-  markOrderPaid: (id: string, reference: string) => void;
+
+  // Bank account management
+  addBankAccount: (account: Omit<BankAccount, "id">) => void;
+  updateBankAccount: (id: string, data: Partial<BankAccount>) => void;
+  deleteBankAccount: (id: string) => void;
 
   addMenuItem: (item: Omit<MenuItem, "id">) => void;
   updateMenuItem: (id: string, item: Partial<MenuItem>) => void;
@@ -251,8 +240,11 @@ interface RestaurantStore {
   updateGalleryImage: (id: string, image: Partial<GalleryImage>) => void;
   deleteGalleryImage: (id: string) => void;
 
-  addOrder: (order: Omit<Order, "id" | "status" | "orderedAt">) => string;
-  updateOrderStatus: (id: string, status: Order["status"]) => void;
+  addOrder: (order: Omit<Order, "id" | "status" | "orderedAt" | "paymentStatus">) => string;
+  updateOrderStatus: (id: string, status: OrderStatus) => void;
+  submitOrderReceipt: (id: string, receiptUrl: string, receiptFileName: string, bankAccountId: string) => void;
+  verifyOrderPayment: (id: string) => void;
+  rejectOrderPayment: (id: string, reason: string) => void;
   cancelOrder: (id: string) => void;
   resetOrders: () => void;
 
@@ -271,8 +263,8 @@ interface RestaurantStore {
 /** Pure-data fields that are synced per-tenant to Firestore (excludes actions and undo history). */
 export const TENANT_DATA_FIELDS = [
   "config", "menuItems", "services", "testimonials", "reservations", "galleryImages", "orders",
-  "siteTheme", "adminTheme", "quickControls", "activityLog", "navLinks", "deliverySettings",
-  "reservationSettings", "customPages", "visitLog", "themeOverrides", "sectionMedia",
+  "bankAccounts", "siteTheme", "adminTheme", "quickControls", "activityLog", "navLinks",
+  "deliverySettings", "reservationSettings", "customPages", "visitLog", "themeOverrides", "sectionMedia",
 ] as const;
 
 function generateId(prefix: string) {
@@ -300,6 +292,7 @@ export const useRestaurantStore = create<RestaurantStore>()(
       reservations: [],
       galleryImages: initialGalleryImages,
       orders: [],
+      bankAccounts: [],
       siteTheme: defaultSiteTheme,
       adminTheme: defaultAdminTheme,
       quickControls: defaultQuickControls,
@@ -307,7 +300,6 @@ export const useRestaurantStore = create<RestaurantStore>()(
       navLinks: defaultNavLinks,
       deliverySettings: defaultDeliverySettings,
       reservationSettings: defaultReservationSettings,
-      paymentSettings: defaultPaymentSettings,
       customPages: [],
       visitLog: [],
       themeOverrides: {},
@@ -352,36 +344,16 @@ export const useRestaurantStore = create<RestaurantStore>()(
       },
       updateDeliverySettings: (settings) => set((s) => ({ deliverySettings: { ...s.deliverySettings, ...settings } })),
       updateReservationSettings: (settings) => set((s) => ({ reservationSettings: { ...s.reservationSettings, ...settings } })),
-      updatePaymentMethods: (methods) => set((s) => ({
-        paymentSettings: { ...s.paymentSettings, methodsEnabled: { ...s.paymentSettings.methodsEnabled, ...methods } },
+
+      // ── Bank accounts ──────────────────────────────────────────────────────
+      addBankAccount: (account) => set((s) => ({
+        bankAccounts: [...s.bankAccounts, { ...account, id: generateId("ba") }],
       })),
-      connectPaymentProvider: (provider, connection) => set((s) => ({
-        paymentSettings: {
-          ...s.paymentSettings,
-          activeProvider: s.paymentSettings.activeProvider ?? provider,
-          connections: { ...s.paymentSettings.connections, [provider]: connection },
-        },
+      updateBankAccount: (id, data) => set((s) => ({
+        bankAccounts: s.bankAccounts.map((ba) => ba.id === id ? { ...ba, ...data } : ba),
       })),
-      disconnectPaymentProvider: (provider) => set((s) => {
-        const connections = { ...s.paymentSettings.connections };
-        delete connections[provider];
-        return {
-          paymentSettings: {
-            ...s.paymentSettings,
-            activeProvider: s.paymentSettings.activeProvider === provider ? null : s.paymentSettings.activeProvider,
-            connections,
-          },
-        };
-      }),
-      setActivePaymentProvider: (provider) => set((s) => ({
-        paymentSettings: { ...s.paymentSettings, activeProvider: provider },
-      })),
-      markOrderPaid: (id, reference) => set((s) => ({
-        orders: s.orders.map((o) => o.id === id ? { ...o, paymentStatus: "paid" as const, paymentReference: reference } : o),
-        activityLog: [
-          { id: generateId("al"), message: "Payment Confirmed", detail: `Order #${id.replace("ord-", "")} verified paid`, timestamp: new Date().toISOString() },
-          ...s.activityLog.slice(0, 49),
-        ],
+      deleteBankAccount: (id) => set((s) => ({
+        bankAccounts: s.bankAccounts.filter((ba) => ba.id !== id),
       })),
 
       addMenuItem: (item) => {
@@ -507,7 +479,13 @@ export const useRestaurantStore = create<RestaurantStore>()(
       },
 
       addOrder: (order) => {
-        const newOrder: Order = { ...order, id: `ord-${generateId("o")}`, status: "new" as const, orderedAt: new Date().toISOString() };
+        const newOrder: Order = {
+          ...order,
+          id: `ord-${generateId("o")}`,
+          status: "new" as const,
+          paymentStatus: "pending_receipt" as const,
+          orderedAt: new Date().toISOString(),
+        };
         set((s) => ({
           orders: [...s.orders, newOrder],
           activityLog: [
@@ -517,6 +495,60 @@ export const useRestaurantStore = create<RestaurantStore>()(
         }));
         return newOrder.id;
       },
+
+      submitOrderReceipt: (id, receiptUrl, receiptFileName, bankAccountId) => set((s) => ({
+        orders: s.orders.map((o) =>
+          o.id === id
+            ? {
+                ...o,
+                receiptUrl,
+                receiptFileName,
+                selectedBankAccountId: bankAccountId,
+                receiptUploadedAt: new Date().toISOString(),
+                paymentStatus: "pending_verification" as PaymentStatus,
+              }
+            : o
+        ),
+        activityLog: [
+          { id: generateId("al"), message: "Receipt Uploaded", detail: `Customer uploaded payment receipt for Order #${id.replace("ord-", "").slice(0, 8)}`, timestamp: new Date().toISOString() },
+          ...s.activityLog.slice(0, 49),
+        ],
+      })),
+
+      verifyOrderPayment: (id) => set((s) => ({
+        orders: s.orders.map((o) =>
+          o.id === id
+            ? {
+                ...o,
+                paymentStatus: "verified" as PaymentStatus,
+                paymentVerifiedAt: new Date().toISOString(),
+                status: "preparing" as OrderStatus,
+              }
+            : o
+        ),
+        activityLog: [
+          { id: generateId("al"), message: "Payment Verified", detail: `Order #${id.replace("ord-", "").slice(0, 8)} — payment confirmed, now Preparing`, timestamp: new Date().toISOString() },
+          ...s.activityLog.slice(0, 49),
+        ],
+      })),
+
+      rejectOrderPayment: (id, reason) => set((s) => ({
+        orders: s.orders.map((o) =>
+          o.id === id
+            ? {
+                ...o,
+                paymentStatus: "rejected" as PaymentStatus,
+                paymentRejectedAt: new Date().toISOString(),
+                paymentRejectionReason: reason,
+              }
+            : o
+        ),
+        activityLog: [
+          { id: generateId("al"), message: "Payment Rejected", detail: `Order #${id.replace("ord-", "").slice(0, 8)} — ${reason || "no reason given"}`, timestamp: new Date().toISOString() },
+          ...s.activityLog.slice(0, 49),
+        ],
+      })),
+
       updateOrderStatus: (id, status) => set((s) => ({
         orders: s.orders.map((o) => o.id === id ? { ...o, status } : o),
         activityLog: status !== "new" ? [

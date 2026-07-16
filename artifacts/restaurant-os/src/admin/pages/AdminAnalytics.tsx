@@ -8,6 +8,7 @@ import {
   Star,
   DollarSign,
   Users,
+  CheckCircle2,
 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { cn } from "@/lib/utils";
@@ -70,13 +71,15 @@ export default function AdminAnalytics() {
 
   const days = lastSevenDays();
 
-  const ordersPerDay = days.map(({ key }) => orders.filter((o) => o.orderedAt.slice(0, 10) === key).length);
-  const visitsPerDay = days.map(({ key }) => visitLog.filter((v) => v.slice(0, 10) === key).length);
+  const ordersPerDay        = days.map(({ key }) => orders.filter((o) => o.orderedAt.slice(0, 10) === key).length);
+  const visitsPerDay        = days.map(({ key }) => visitLog.filter((v) => v.slice(0, 10) === key).length);
   const totalVisitsThisWeek = visitsPerDay.reduce((a, b) => a + b, 0);
 
-  const completedOrders = orders.filter((o) => o.status === "completed");
-  const totalRevenue = completedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
-  const avgOrderValue = completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
+  const allVerifiedOrders    = orders.filter((o) => o.paymentStatus === "verified");
+  const deliveredOrders      = orders.filter((o) => o.status === "delivered" && o.paymentStatus === "verified");
+  const totalRevenue         = deliveredOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const totalVerifiedRevenue = allVerifiedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const avgOrderValue        = allVerifiedOrders.length > 0 ? totalVerifiedRevenue / allVerifiedOrders.length : 0;
 
   const avgRating =
     testimonials.length > 0
@@ -87,17 +90,34 @@ export default function AdminAnalytics() {
     .filter((r) => r.status === "confirmed")
     .reduce((sum, r) => sum + r.guests, 0);
 
-  const revenueByStatus = (["completed", "preparing", "new", "ready", "cancelled"] as const).map((status) => ({
-    status,
-    rev: orders.filter((o) => o.status === status).reduce((s, o) => s + o.totalAmount, 0),
+  const pendingReceiptCount      = orders.filter((o) => o.paymentStatus === "pending_receipt").length;
+  const pendingVerificationCount = orders.filter((o) => o.paymentStatus === "pending_verification").length;
+  const verifiedCount            = orders.filter((o) => o.paymentStatus === "verified").length;
+  const rejectedCount            = orders.filter((o) => o.paymentStatus === "rejected").length;
+
+  type StatusKey = "delivered" | "out_for_delivery" | "ready" | "preparing" | "new" | "cancelled";
+  const revenueByStatus: { status: StatusKey; label: string; rev: number }[] = [
+    { status: "delivered",        label: "Delivered"       },
+    { status: "out_for_delivery", label: "Out for Delivery"},
+    { status: "ready",            label: "Ready"           },
+    { status: "preparing",        label: "Preparing"       },
+    { status: "new",              label: "New"             },
+    { status: "cancelled",        label: "Cancelled"       },
+  ].map(({ status, label }) => ({
+    status: status as StatusKey,
+    label,
+    rev: orders
+      .filter((o) => o.status === status && o.paymentStatus === "verified")
+      .reduce((s, o) => s + o.totalAmount, 0),
   }));
 
-  const statusColors: Record<string, string> = {
-    completed: "bg-primary",
-    preparing: "bg-amber-400",
-    new: "bg-blue-400",
-    ready: "bg-emerald-400",
-    cancelled: "bg-red-400",
+  const statusColors: Record<StatusKey, string> = {
+    delivered:       "bg-primary",
+    out_for_delivery:"bg-blue-400",
+    ready:           "bg-emerald-400",
+    preparing:       "bg-amber-400",
+    new:             "bg-blue-300",
+    cancelled:       "bg-red-400",
   };
 
   return (
@@ -108,10 +128,10 @@ export default function AdminAnalytics() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard
-          label="Total Revenue"
+          label="Verified Revenue"
           value={formatCurrency(totalRevenue)}
           icon={DollarSign}
-          trend={`${completedOrders.length} completed`}
+          trend={`${deliveredOrders.length} delivered`}
           trendUp
           valueClassName="text-xl sm:text-2xl"
         />
@@ -119,7 +139,7 @@ export default function AdminAnalytics() {
           label="Total Orders"
           value={orders.length}
           icon={ShoppingBag}
-          trend={`${completedOrders.length} completed`}
+          trend={`${allVerifiedOrders.length} verified`}
           trendUp
           valueClassName="text-xl sm:text-2xl"
         />
@@ -139,6 +159,27 @@ export default function AdminAnalytics() {
           trendUp
           valueClassName="text-xl sm:text-2xl"
         />
+      </div>
+
+      {/* Payment verification pipeline */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5 mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+          <h2 className="text-sm font-semibold text-foreground">Payment Verification Pipeline</h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Awaiting Receipt",     count: pendingReceiptCount,      color: "text-foreground/60", bg: "bg-white/5"         },
+            { label: "Pending Verification", count: pendingVerificationCount, color: "text-amber-400",     bg: "bg-amber-400/10"    },
+            { label: "Verified",             count: verifiedCount,            color: "text-emerald-400",   bg: "bg-emerald-400/10"  },
+            { label: "Rejected",             count: rejectedCount,            color: "text-red-400",       bg: "bg-red-400/10"      },
+          ].map(({ label, count, color, bg }) => (
+            <div key={label} className={cn("rounded-lg p-3 text-center", bg)}>
+              <p className={cn("text-2xl font-bold", color)}>{count}</p>
+              <p className="text-xs text-foreground/50 mt-1">{label}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Charts */}
@@ -169,15 +210,15 @@ export default function AdminAnalytics() {
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-4">
             <DollarSign className="w-4 h-4 text-primary shrink-0" />
-            <h2 className="text-sm font-semibold text-foreground">Revenue by Order Status</h2>
+            <h2 className="text-sm font-semibold text-foreground">Verified Revenue by Order Status</h2>
           </div>
           <div className="space-y-3">
-            {revenueByStatus.map(({ status, rev }) => {
-              const pct = totalRevenue > 0 ? (rev / totalRevenue) * 100 : 0;
+            {revenueByStatus.map(({ status, label, rev }) => {
+              const pct = totalVerifiedRevenue > 0 ? (rev / totalVerifiedRevenue) * 100 : 0;
               return (
                 <div key={status}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="capitalize text-foreground/60">{status}</span>
+                    <span className="capitalize text-foreground/60">{label}</span>
                     <span className="text-foreground font-medium">{formatCurrency(rev)}</span>
                   </div>
                   <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -189,6 +230,9 @@ export default function AdminAnalytics() {
                 </div>
               );
             })}
+            {totalVerifiedRevenue === 0 && (
+              <p className="text-xs text-foreground/30 text-center py-4">No verified payments yet</p>
+            )}
           </div>
         </div>
 
@@ -199,12 +243,14 @@ export default function AdminAnalytics() {
           </div>
           <div className="space-y-0">
             {[
-              { label: "Average Order Value", value: formatCurrency(avgOrderValue) },
-              { label: "Avg Guest Rating", value: testimonials.length > 0 ? `${avgRating.toFixed(1)} / 5.0` : "No reviews yet" },
-              { label: "Confirmed Reservations", value: reservations.filter((r) => r.status === "confirmed").length.toString() },
-              { label: "Pending Reservations", value: reservations.filter((r) => r.status === "pending").length.toString() },
-              { label: "Active Menu Items", value: `${menuItems.filter((m) => m.available).length} items` },
-              { label: "Total Guests Hosted", value: totalGuests.toString() },
+              { label: "Average Order Value",    value: formatCurrency(avgOrderValue)                                            },
+              { label: "Avg Guest Rating",       value: testimonials.length > 0 ? `${avgRating.toFixed(1)} / 5.0` : "No reviews yet" },
+              { label: "Confirmed Reservations", value: reservations.filter((r) => r.status === "confirmed").length.toString()   },
+              { label: "Pending Reservations",   value: reservations.filter((r) => r.status === "pending").length.toString()     },
+              { label: "Active Menu Items",      value: `${menuItems.filter((m) => m.available).length} items`                  },
+              { label: "Total Guests Hosted",    value: totalGuests.toString()                                                    },
+              { label: "Orders Verified & Paid", value: verifiedCount.toString()                                                 },
+              { label: "Pending Verification",   value: pendingVerificationCount.toString()                                      },
             ].map(({ label, value }) => (
               <div key={label} className="flex justify-between items-center py-2.5 border-b border-white/5 last:border-0">
                 <span className="text-sm text-foreground/60">{label}</span>
