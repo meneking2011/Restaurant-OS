@@ -34,6 +34,7 @@ const AdminMediaLibrary = lazy(() => import("@/admin/pages/AdminMediaLibrary"));
 const AdminPages = lazy(() => import("@/admin/pages/AdminPages"));
 const AdminNavigation = lazy(() => import("@/admin/pages/AdminNavigation"));
 const AdminWebsite = lazy(() => import("@/admin/pages/AdminWebsite"));
+const AdminAnalytics = lazy(() => import("@/admin/pages/AdminAnalytics"));
 const AdminLogin = lazy(() => import("@/admin/pages/AdminLogin"));
 
 const queryClient = new QueryClient();
@@ -122,6 +123,7 @@ function Router() {
         <Route path="/admin/pages" component={() => <RequireAuth component={AdminPages} />} />
         <Route path="/admin/services" component={() => <RequireAuth component={AdminServices} />} />
         <Route path="/admin/testimonials" component={() => <RequireAuth component={AdminTestimonials} />} />
+        <Route path="/admin/analytics" component={() => <RequireAuth component={AdminAnalytics} />} />
         <Route path="/admin/settings" component={() => <RequireAuth component={AdminSettings} />} />
 
         <Route path="/pages/:slug">

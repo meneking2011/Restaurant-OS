@@ -3,27 +3,28 @@ import {
   LayoutDashboard, UtensilsCrossed, ConciergeBell, Star,
   CalendarCheck, Settings, Flame, ExternalLink, ShoppingBag,
   Images, Building2, LogOut, Globe,
-  Navigation, FileText, Palette, Library,
+  Navigation, FileText, Palette, Library, BarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { useAuth } from "@/lib/auth";
 
 const navItems = [
-  { href: "/admin",              label: "Dashboard",       icon: LayoutDashboard, exact: true },
-  { href: "/admin/website",      label: "Website",         icon: Globe },
-  { href: "/admin/menu",         label: "Menu",            icon: UtensilsCrossed },
-  { href: "/admin/reservations", label: "Reservations",    icon: CalendarCheck },
-  { href: "/admin/orders",       label: "Orders",          icon: ShoppingBag },
-  { href: "/admin/gallery",      label: "Gallery",         icon: Images },
-  { href: "/admin/media",        label: "Media Library",   icon: Library },
-  { href: "/admin/business",     label: "Restaurant Profile",icon: Building2 },
-  { href: "/admin/design-tokens",label: "Design Tokens",   icon: Palette },
-  { href: "/admin/navigation",   label: "Navigation",      icon: Navigation },
-  { href: "/admin/pages",        label: "Pages",           icon: FileText },
-  { href: "/admin/services",     label: "Services",        icon: ConciergeBell },
-  { href: "/admin/testimonials", label: "Testimonials",    icon: Star },
-  { href: "/admin/settings",     label: "Settings",        icon: Settings },
+  { href: "/admin",              label: "Dashboard",          icon: LayoutDashboard, exact: true },
+  { href: "/admin/analytics",    label: "Analytics",          icon: BarChart2 },
+  { href: "/admin/website",      label: "Website",            icon: Globe },
+  { href: "/admin/menu",         label: "Menu",               icon: UtensilsCrossed },
+  { href: "/admin/reservations", label: "Reservations",       icon: CalendarCheck },
+  { href: "/admin/orders",       label: "Orders",             icon: ShoppingBag },
+  { href: "/admin/gallery",      label: "Gallery",            icon: Images },
+  { href: "/admin/media",        label: "Media Library",      icon: Library },
+  { href: "/admin/business",     label: "Restaurant Profile", icon: Building2 },
+  { href: "/admin/design-tokens",label: "Design Tokens",      icon: Palette },
+  { href: "/admin/navigation",   label: "Navigation",         icon: Navigation },
+  { href: "/admin/pages",        label: "Pages",              icon: FileText },
+  { href: "/admin/services",     label: "Services",           icon: ConciergeBell },
+  { href: "/admin/testimonials", label: "Testimonials",       icon: Star },
+  { href: "/admin/settings",     label: "Settings",           icon: Settings },
 ];
 
 interface AdminSidebarProps {

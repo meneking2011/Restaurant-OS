@@ -183,8 +183,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Safe fallback so no component ever crashes if accidentally rendered outside AuthProvider. */
+const AUTH_FALLBACK: AuthContextValue = {
+  user: null,
+  restaurantId: null,
+  loading: true,
+  error: null,
+  login: async () => { throw new Error("AuthProvider not mounted"); },
+  signup: async () => { throw new Error("AuthProvider not mounted"); },
+  loginWithGoogle: async () => { throw new Error("AuthProvider not mounted"); },
+  logout: async () => {},
+};
+
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
+  if (!ctx) {
+    if (import.meta.env.DEV) {
+      console.error(
+        "[RestaurantOS] useAuth() called outside <AuthProvider>. " +
+        "All components must be rendered inside the provider. Returning safe defaults."
+      );
+    }
+    return AUTH_FALLBACK;
+  }
   return ctx;
 }

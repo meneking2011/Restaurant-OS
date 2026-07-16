@@ -496,14 +496,25 @@ export const useRestaurantStore = create<RestaurantStore>()(
         return newOrder.id;
       },
 
-      submitOrderReceipt: (id, receiptUrl, receiptFileName, bankAccountId) => set((s) => ({
+      submitOrderReceipt: (id, receiptUrl, receiptFileName, bankAccountId) => {
+        // Validate required fields before saving — never send undefined to Firestore
+        if (!id) {
+          console.error("[submitOrderReceipt] Missing order id — aborting");
+          return;
+        }
+        if (!receiptUrl) {
+          console.error("[submitOrderReceipt] Missing receiptUrl — aborting");
+          return;
+        }
+        set((s) => ({
         orders: s.orders.map((o) =>
           o.id === id
             ? {
                 ...o,
-                receiptUrl,
-                receiptFileName,
-                selectedBankAccountId: bankAccountId,
+                // Sanitize: never write undefined to Firestore; use empty string as fallback
+                receiptUrl: receiptUrl ?? "",
+                receiptFileName: receiptFileName ?? "",
+                selectedBankAccountId: bankAccountId ?? "",
                 receiptUploadedAt: new Date().toISOString(),
                 paymentStatus: "pending_verification" as PaymentStatus,
               }
@@ -513,7 +524,8 @@ export const useRestaurantStore = create<RestaurantStore>()(
           { id: generateId("al"), message: "Receipt Uploaded", detail: `Customer uploaded payment receipt for Order #${id.replace("ord-", "").slice(0, 8)}`, timestamp: new Date().toISOString() },
           ...s.activityLog.slice(0, 49),
         ],
-      })),
+      }));
+      },
 
       verifyOrderPayment: (id) => set((s) => ({
         orders: s.orders.map((o) =>
