@@ -107,83 +107,106 @@ export function PrintReceiptModal({ data, onClose }: PrintReceiptModalProps) {
 
         {/* Receipt Preview */}
         <div className="p-5">
-          <div className="bg-white text-black rounded-lg p-5 font-mono text-[13px] shadow-inner">
-            <div className="text-center mb-4">
-              <p className="text-lg font-bold uppercase tracking-widest">{data.restaurantName}</p>
-              <p className="text-xs text-gray-500">{data.type === "order" ? "Order Receipt" : "Reservation Confirmation"}</p>
-              <p className="text-xs text-gray-500">{new Date().toLocaleString()}</p>
+          <div className="bg-white text-black rounded-lg p-5 font-mono text-[12px] shadow-inner" style={{ maxWidth: 320, margin: "0 auto" }}>
+            {/* Header */}
+            <div className="text-center mb-3">
+              <p className="text-base font-bold uppercase tracking-[0.2em] mb-0.5">{data.restaurantName}</p>
+              <p className="text-[10px] tracking-widest text-gray-500 uppercase">
+                {data.type === "order" ? "─── Order Receipt ───" : "─ Reservation Slip ─"}
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                {new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                {" · "}
+                {new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+              </p>
             </div>
 
-            <div className="border-t border-dashed border-gray-300 my-3" />
+            <div className="border-t border-dashed border-gray-300 my-2" />
 
             {data.type === "order" ? (
               <>
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between"><span className="text-gray-500">Order #</span><span>{data.id}</span></div>
+                {/* Order header info */}
+                <div className="space-y-0.5 text-[11px] mb-2">
+                  <div className="flex justify-between"><span className="text-gray-500">Order #</span><span className="font-medium">{data.id.replace("ord-", "").toUpperCase().slice(0, 8)}</span></div>
                   <div className="flex justify-between"><span className="text-gray-500">Customer</span><span>{data.customerName}</span></div>
                   {data.phone && <div className="flex justify-between"><span className="text-gray-500">Phone</span><span>{data.phone}</span></div>}
-                  {data.email && <div className="flex justify-between"><span className="text-gray-500">Email</span><span className="truncate max-w-[150px]">{data.email}</span></div>}
-                  <div className="flex justify-between"><span className="text-gray-500">Date</span><span>{data.date}</span></div>
                   {data.paymentMethod && <div className="flex justify-between"><span className="text-gray-500">Payment</span><span>{data.paymentMethod === "card" ? "Credit Card" : "Bank Transfer"}</span></div>}
-                  {data.deliveryAddress && <div className="flex justify-between"><span className="text-gray-500">Address</span><span className="truncate max-w-[150px]">{data.deliveryAddress}</span></div>}
                 </div>
 
-                <div className="border-t border-dashed border-gray-300 my-3" />
+                <div className="border-t border-dashed border-gray-300 my-2" />
 
-                <div className="space-y-1">
+                {/* Items */}
+                <div className="space-y-1 mb-2">
                   {data.items?.map((item, i) => (
-                    <div key={i} className="flex justify-between text-xs">
-                      <span>{item.name} ×{item.quantity}</span>
-                      <span>{formatCurrency(item.price * item.quantity)}</span>
+                    <div key={i} className="flex justify-between text-[11px]">
+                      <span className="flex-1 pr-2">{item.name} <span className="text-gray-400">×{item.quantity}</span></span>
+                      <span className="shrink-0">{formatCurrency(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="border-t border-dashed border-gray-300 my-3" />
+                <div className="border-t border-dashed border-gray-300 my-2" />
 
-                <div className="space-y-1 text-xs">
+                {/* Totals */}
+                <div className="space-y-0.5 text-[11px]">
                   <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{formatCurrency(data.subtotal ?? 0)}</span></div>
-                  <div className="flex justify-between text-gray-500"><span>Delivery</span><span>{formatCurrency(data.deliveryFee ?? 0)}</span></div>
-                  <div className="flex justify-between text-gray-500"><span>Tax</span><span>{formatCurrency(data.tax ?? 0)}</span></div>
-                  {(data.discount ?? 0) > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatCurrency(data.discount ?? 0)}</span></div>}
-                  <div className="flex justify-between font-bold text-sm border-t border-gray-200 pt-1 mt-1">
-                    <span>TOTAL</span>
-                    <span>{formatCurrency(data.totalAmount ?? 0)}</span>
-                  </div>
+                  {(data.deliveryFee ?? 0) > 0 && <div className="flex justify-between text-gray-500"><span>Delivery</span><span>{formatCurrency(data.deliveryFee ?? 0)}</span></div>}
+                  {(data.tax ?? 0) > 0 && <div className="flex justify-between text-gray-500"><span>Tax</span><span>{formatCurrency(data.tax ?? 0)}</span></div>}
+                  {(data.discount ?? 0) > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>−{formatCurrency(data.discount ?? 0)}</span></div>}
+                </div>
+
+                <div className="border-t border-gray-300 my-1.5" />
+                <div className="flex justify-between font-bold text-[13px]">
+                  <span>TOTAL</span>
+                  <span>{formatCurrency(data.totalAmount ?? 0)}</span>
                 </div>
 
                 {data.specialNotes && (
                   <>
-                    <div className="border-t border-dashed border-gray-300 my-3" />
-                    <p className="text-xs text-gray-500 italic">Notes: {data.specialNotes}</p>
+                    <div className="border-t border-dashed border-gray-300 my-2" />
+                    <p className="text-[10px] text-gray-500 italic">Note: {data.specialNotes}</p>
                   </>
                 )}
               </>
             ) : (
               <>
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between"><span className="text-gray-500">Reservation #</span><span>{data.id}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Guest</span><span>{data.customerName}</span></div>
+                {/* Reservation info */}
+                <div className="space-y-0.5 text-[11px] mb-2">
+                  <div className="flex justify-between"><span className="text-gray-500">Ref #</span><span className="font-medium">{data.id.replace("res-", "").toUpperCase().slice(0, 8)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Guest</span><span className="font-medium">{data.customerName}</span></div>
                   {data.phone && <div className="flex justify-between"><span className="text-gray-500">Phone</span><span>{data.phone}</span></div>}
-                  {data.email && <div className="flex justify-between"><span className="text-gray-500">Email</span><span>{data.email}</span></div>}
-                  <div className="flex justify-between"><span className="text-gray-500">Date</span><span>{data.date}</span></div>
+                  {data.email && <div className="flex justify-between"><span className="text-gray-500">Email</span><span className="text-[10px]">{data.email}</span></div>}
+                </div>
+
+                <div className="border-t border-dashed border-gray-300 my-2" />
+
+                <div className="space-y-0.5 text-[11px] mb-2">
+                  <div className="flex justify-between"><span className="text-gray-500">Date</span><span className="font-medium">{new Date(data.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "long", year: "numeric" })}</span></div>
                   <div className="flex justify-between"><span className="text-gray-500">Time</span><span>{data.time}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Guests</span><span>{data.guests}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Party size</span><span>{data.guests} {(data.guests ?? 1) === 1 ? "guest" : "guests"}</span></div>
                   {data.table && <div className="flex justify-between"><span className="text-gray-500">Table</span><span>{data.table}</span></div>}
                   {data.occasion && <div className="flex justify-between"><span className="text-gray-500">Occasion</span><span>{data.occasion}</span></div>}
-                  {data.reservationFee != null && data.reservationFee > 0 && (
-                    <>
-                      <div className="border-t border-dashed border-gray-300 my-2" />
-                      <div className="flex justify-between font-bold"><span>Reservation Fee</span><span>{formatCurrency(data.reservationFee)}</span></div>
-                      <div className="flex justify-between text-gray-500"><span>Status</span><span className="text-green-600 font-medium">PAID</span></div>
-                    </>
-                  )}
                 </div>
+
+                {data.reservationFee != null && data.reservationFee > 0 && (
+                  <>
+                    <div className="border-t border-dashed border-gray-300 my-2" />
+                    <div className="flex justify-between font-bold text-[13px]">
+                      <span>Reservation Fee</span>
+                      <span>{formatCurrency(data.reservationFee)}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-green-600 font-medium mt-0.5">
+                      <span>Payment Status</span>
+                      <span>✓ PAID</span>
+                    </div>
+                  </>
+                )}
               </>
             )}
 
             <div className="border-t border-dashed border-gray-300 my-3" />
-            <p className="text-center text-xs text-gray-500">Thank you for choosing {data.restaurantName}!</p>
+            <p className="text-center text-[10px] text-gray-500 uppercase tracking-widest">Thank you!</p>
+            <p className="text-center text-[10px] text-gray-400 mt-0.5">{data.restaurantName}</p>
           </div>
 
           {/* Error / Status */}
@@ -233,48 +256,83 @@ export function PrintReceiptModal({ data, onClose }: PrintReceiptModalProps) {
 }
 
 function generateReceiptHtml(data: ReceiptData): string {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
   const items = data.type === "order" && data.items
-    ? data.items.map((i) => `<div style="display:flex;justify-content:space-between;margin:4px 0"><span>${i.name} ×${i.quantity}</span><span>$${(i.price * i.quantity).toFixed(2)}</span></div>`).join("")
+    ? data.items.map((i) => {
+        const total = (i.price * i.quantity).toFixed(2);
+        const name  = `${i.name} x${i.quantity}`;
+        return `<div class="row"><span>${name}</span><span>${total}</span></div>`;
+      }).join("")
     : "";
 
-  return `<!DOCTYPE html><html><head><title>Receipt</title>
-  <style>body{font-family:monospace;font-size:13px;padding:24px;max-width:320px;margin:0 auto}
-  h1{text-align:center;font-size:16px;letter-spacing:3px;text-transform:uppercase;margin-bottom:2px}
-  .center{text-align:center}.divider{border-top:1px dashed #999;margin:10px 0}
-  .row{display:flex;justify-content:space-between;margin:3px 0}
-  .total{font-weight:bold;font-size:15px;border-top:1px solid #ccc;padding-top:6px;margin-top:4px}
-  .label{color:#777}@media print{button{display:none}}</style></head>
-  <body><h1>${data.restaurantName}</h1>
-  <p class="center" style="color:#777;font-size:11px">${data.type === "order" ? "ORDER RECEIPT" : "RESERVATION CONFIRMATION"}</p>
-  <p class="center" style="color:#777;font-size:11px">${new Date().toLocaleString()}</p>
-  <div class="divider"></div>
-  ${data.type === "order" ? `
-    <div class="row"><span class="label">Order #</span><span>${data.id}</span></div>
+  const orderSection = `
+    <div class="row"><span class="label">Order #</span><span>${data.id.replace("ord-","").toUpperCase().slice(0,8)}</span></div>
     <div class="row"><span class="label">Customer</span><span>${data.customerName}</span></div>
     ${data.phone ? `<div class="row"><span class="label">Phone</span><span>${data.phone}</span></div>` : ""}
-    ${data.date ? `<div class="row"><span class="label">Date</span><span>${data.date}</span></div>` : ""}
     ${data.paymentMethod ? `<div class="row"><span class="label">Payment</span><span>${data.paymentMethod === "card" ? "Credit Card" : "Bank Transfer"}</span></div>` : ""}
     <div class="divider"></div>
     ${items}
     <div class="divider"></div>
-    <div class="row"><span class="label">Subtotal</span><span>$${(data.subtotal ?? 0).toFixed(2)}</span></div>
-    <div class="row"><span class="label">Delivery</span><span>$${(data.deliveryFee ?? 0).toFixed(2)}</span></div>
-    <div class="row"><span class="label">Tax</span><span>$${(data.tax ?? 0).toFixed(2)}</span></div>
-    ${(data.discount ?? 0) > 0 ? `<div class="row" style="color:green"><span>Discount</span><span>-$${(data.discount ?? 0).toFixed(2)}</span></div>` : ""}
-    <div class="row total"><span>TOTAL</span><span>$${(data.totalAmount ?? 0).toFixed(2)}</span></div>
-  ` : `
-    <div class="row"><span class="label">Reservation #</span><span>${data.id}</span></div>
-    <div class="row"><span class="label">Guest</span><span>${data.customerName}</span></div>
+    <div class="row label"><span>Subtotal</span><span>${(data.subtotal ?? 0).toFixed(2)}</span></div>
+    ${(data.deliveryFee ?? 0) > 0 ? `<div class="row label"><span>Delivery</span><span>${(data.deliveryFee ?? 0).toFixed(2)}</span></div>` : ""}
+    ${(data.tax ?? 0) > 0 ? `<div class="row label"><span>Tax</span><span>${(data.tax ?? 0).toFixed(2)}</span></div>` : ""}
+    ${(data.discount ?? 0) > 0 ? `<div class="row" style="color:#2a7a2a"><span>Discount</span><span>−${(data.discount ?? 0).toFixed(2)}</span></div>` : ""}
+    <div class="solid-divider"></div>
+    <div class="row total"><span>TOTAL</span><span>${(data.totalAmount ?? 0).toFixed(2)}</span></div>
+    ${data.specialNotes ? `<div class="divider"></div><p class="label" style="font-style:italic">Note: ${data.specialNotes}</p>` : ""}
+  `;
+
+  const reservationDate = data.date
+    ? new Date(data.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "long", year: "numeric" })
+    : "";
+
+  const reservationSection = `
+    <div class="row"><span class="label">Ref #</span><span>${data.id.replace("res-","").toUpperCase().slice(0,8)}</span></div>
+    <div class="row"><span class="label">Guest</span><span><b>${data.customerName}</b></span></div>
     ${data.phone ? `<div class="row"><span class="label">Phone</span><span>${data.phone}</span></div>` : ""}
-    <div class="row"><span class="label">Date</span><span>${data.date}</span></div>
+    ${data.email ? `<div class="row"><span class="label">Email</span><span style="font-size:10px">${data.email}</span></div>` : ""}
+    <div class="divider"></div>
+    <div class="row"><span class="label">Date</span><span>${reservationDate}</span></div>
     <div class="row"><span class="label">Time</span><span>${data.time}</span></div>
-    <div class="row"><span class="label">Guests</span><span>${data.guests}</span></div>
+    <div class="row"><span class="label">Party size</span><span>${data.guests} ${(data.guests ?? 1) === 1 ? "guest" : "guests"}</span></div>
     ${data.table ? `<div class="row"><span class="label">Table</span><span>${data.table}</span></div>` : ""}
     ${data.occasion ? `<div class="row"><span class="label">Occasion</span><span>${data.occasion}</span></div>` : ""}
-    ${(data.reservationFee ?? 0) > 0 ? `<div class="divider"></div><div class="row total"><span>Reservation Fee PAID</span><span>$${(data.reservationFee ?? 0).toFixed(2)}</span></div>` : ""}
-  `}
-  <div class="divider"></div>
-  <p class="center" style="color:#777">Thank you for choosing ${data.restaurantName}!</p>
-  <br/><button onclick="window.print()" style="width:100%;padding:8px;cursor:pointer">🖨 Print</button>
+    ${(data.reservationFee ?? 0) > 0 ? `
+      <div class="divider"></div>
+      <div class="row total"><span>Reservation Fee</span><span>${(data.reservationFee ?? 0).toFixed(2)}</span></div>
+      <div class="row" style="color:#2a7a2a;font-weight:600"><span>Payment Status</span><span>✓ PAID</span></div>
+    ` : ""}
+  `;
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt — ${data.restaurantName}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Courier New', Courier, monospace; font-size: 12px; padding: 20px 16px; max-width: 320px; margin: 0 auto; color: #111; }
+    h1 { text-align: center; font-size: 15px; letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 2px; }
+    .subtitle { text-align: center; font-size: 10px; color: #666; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 2px; }
+    .timestamp { text-align: center; font-size: 10px; color: #888; margin-bottom: 8px; }
+    .divider { border-top: 1px dashed #aaa; margin: 8px 0; }
+    .solid-divider { border-top: 1px solid #999; margin: 6px 0; }
+    .row { display: flex; justify-content: space-between; margin: 3px 0; gap: 8px; }
+    .row span:last-child { text-align: right; }
+    .label { color: #666; }
+    .total { font-weight: bold; font-size: 14px; }
+    .footer { text-align: center; font-size: 10px; color: #888; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+    @media print { .no-print { display: none !important; } body { padding: 0; } }
+  </style></head>
+  <body>
+    <h1>${data.restaurantName}</h1>
+    <p class="subtitle">${data.type === "order" ? "─── Order Receipt ───" : "─ Reservation Slip ─"}</p>
+    <p class="timestamp">${dateStr} · ${timeStr}</p>
+    <div class="divider"></div>
+    ${data.type === "order" ? orderSection : reservationSection}
+    <div class="divider"></div>
+    <p class="footer">Thank you!</p>
+    <p class="footer" style="margin-top:2px">${data.restaurantName}</p>
+    <br class="no-print"/>
+    <button class="no-print" onclick="window.print()" style="width:100%;padding:8px;cursor:pointer;font-family:monospace;margin-top:8px">🖨 Print Receipt</button>
   </body></html>`;
 }

@@ -62,6 +62,7 @@ export interface DeliverySettings {
 
 export interface ReservationSettings {
   maxPartySize: number;
+  maxTotalSeats: number;
   slotDurationMins: number;
   advanceNoticeHours: number;
   maxAdvanceDays: number;
@@ -155,6 +156,7 @@ const defaultDeliverySettings: DeliverySettings = {
 
 const defaultReservationSettings: ReservationSettings = {
   maxPartySize: 10,
+  maxTotalSeats: 50,
   slotDurationMins: 90,
   advanceNoticeHours: 24,
   maxAdvanceDays: 60,

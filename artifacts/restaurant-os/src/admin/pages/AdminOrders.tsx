@@ -530,7 +530,7 @@ export default function AdminOrders() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 mt-2 overflow-x-auto scrollbar-none">
                       <span className={cn("text-xs px-2 py-0.5 rounded-full border font-medium flex items-center gap-1 shrink-0", cfg.color)}>
                         <cfg.icon className="w-2.5 h-2.5" /> {cfg.label}
                       </span>

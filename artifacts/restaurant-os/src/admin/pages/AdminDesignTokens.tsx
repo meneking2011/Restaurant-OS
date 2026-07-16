@@ -344,11 +344,11 @@ export default function AdminDesignTokens() {
       actions={saved ? <span className="text-xs text-emerald-400">Applied</span> : undefined}
     >
       {activeSection !== "media" && (
-        <div className="flex items-center gap-2 flex-wrap mb-5">
-          <span className="text-xs text-foreground/40 mr-1">Scope:</span>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-5 scrollbar-none">
+          <span className="text-xs text-foreground/40 mr-1 shrink-0">Scope:</span>
           <button
             onClick={() => setScope("global")}
-            className={cn("px-3 py-1.5 rounded-lg text-xs transition-colors", isGlobal ? "bg-primary/15 text-primary font-medium" : "text-foreground/50 hover:text-foreground hover:bg-white/5")}
+            className={cn("shrink-0 px-3 py-1.5 rounded-lg text-xs transition-colors", isGlobal ? "bg-primary/15 text-primary font-medium" : "text-foreground/50 hover:text-foreground hover:bg-white/5")}
           >
             Global (Apply Everywhere)
           </button>
@@ -356,7 +356,7 @@ export default function AdminDesignTokens() {
             <button
               key={key}
               onClick={() => setScope(key)}
-              className={cn("px-3 py-1.5 rounded-lg text-xs transition-colors", scope === key ? "bg-primary/15 text-primary font-medium" : "text-foreground/50 hover:text-foreground hover:bg-white/5")}
+              className={cn("shrink-0 px-3 py-1.5 rounded-lg text-xs transition-colors", scope === key ? "bg-primary/15 text-primary font-medium" : "text-foreground/50 hover:text-foreground hover:bg-white/5")}
             >
               {label}
             </button>
@@ -365,7 +365,7 @@ export default function AdminDesignTokens() {
             <button
               onClick={() => clearThemeOverride(scope)}
               disabled={!hasOverride}
-              className="ml-1 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-foreground/50 hover:text-foreground hover:bg-white/5 disabled:opacity-30 transition-colors"
+              className="ml-1 shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-foreground/50 hover:text-foreground hover:bg-white/5 disabled:opacity-30 transition-colors"
             >
               <RotateCcw className="w-3 h-3" /> Reset to Global
             </button>
@@ -373,13 +373,13 @@ export default function AdminDesignTokens() {
         </div>
       )}
 
-      <div className="flex gap-1 flex-wrap mb-6 border-b border-white/10 pb-3">
+      <div className="flex gap-1 overflow-x-auto pb-2 mb-4 border-b border-white/10 scrollbar-none">
         {SECTIONS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setActiveSection(key)}
             className={cn(
-              "flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs transition-colors",
+              "shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs transition-colors",
               activeSection === key ? "bg-primary/15 text-primary font-medium" : "text-foreground/50 hover:text-foreground hover:bg-white/5"
             )}
           >

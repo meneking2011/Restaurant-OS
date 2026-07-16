@@ -4,7 +4,7 @@ import { AdminLayout } from "../layout/AdminLayout";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PrintReceiptModal, ReceiptData } from "../components/PrintReceiptModal";
-import { CalendarCheck, Download, Plus, Eye, X, Check, Clock, Printer, RotateCcw, Settings2, ChevronDown } from "lucide-react";
+import { CalendarCheck, Download, Eye, X, Clock, Printer, RotateCcw, Settings2, ChevronDown } from "lucide-react";
 
 type StatusFilter = "all" | "pending" | "confirmed" | "seated" | "completed" | "cancelled";
 
@@ -162,6 +162,22 @@ function ReservationSettings() {
           </select>
         </div>
 
+        {/* Max Total Seats */}
+        <div className="p-3 bg-white/5 rounded-lg">
+          <label className="text-xs text-foreground/50 mb-1.5 block">Total Seats Available</label>
+          <input
+            type="number"
+            min={1}
+            max={1000}
+            value={reservationSettings.maxTotalSeats}
+            onChange={(e) => updateReservationSettings({ maxTotalSeats: Math.max(1, parseInt(e.target.value) || 1) })}
+            className={inputCls}
+          />
+          <p className="text-[10px] text-foreground/30 mt-1">
+            Customers see remaining seats live. Set to a high number if unlimited.
+          </p>
+        </div>
+
         {/* Advance Notice */}
         <div className="p-3 bg-white/5 rounded-lg">
           <label className="text-xs text-foreground/50 mb-1.5 block">Advance Notice Required</label>
@@ -215,34 +231,32 @@ function ReservationSettings() {
   );
 }
 
+function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
+  if (!value && value !== 0) return null;
+  return (
+    <div className="flex items-start justify-between gap-3 py-1.5 border-b border-white/5 last:border-0">
+      <span className="text-xs text-foreground/40 shrink-0">{label}</span>
+      <span className="text-xs text-foreground text-right">{value}</span>
+    </div>
+  );
+}
+
 function ReservationDetailPanel({ reservationId, onClose, onPrint }: { reservationId: string; onClose: () => void; onPrint: () => void }) {
   const reservation = useRestaurantStore((s) => s.reservations.find((r) => r.id === reservationId));
   const { updateReservation, updateReservationStatus, deleteReservation } = useRestaurantStore();
 
-  const [editName,     setEditName]     = useState(reservation?.name     ?? "");
-  const [editEmail,    setEditEmail]    = useState(reservation?.email    ?? "");
-  const [editPhone,    setEditPhone]    = useState(reservation?.phone    ?? "");
-  const [editDate,     setEditDate]     = useState(reservation?.date     ?? "");
-  const [editTime,     setEditTime]     = useState(reservation?.time     ?? "");
-  const [editGuests,   setEditGuests]   = useState(reservation?.guests   ?? 2);
-  const [editTable,    setEditTable]    = useState(reservation?.table    ?? "");
-  const [editOccasion, setEditOccasion] = useState(reservation?.occasion ?? "");
-  const [editNotes,    setEditNotes]    = useState(reservation?.notes    ?? "");
-  const [deleteOpen,   setDeleteOpen]   = useState(false);
-  const [saved,        setSaved]        = useState(false);
+  const [editTable,  setEditTable]  = useState(reservation?.table ?? "");
+  const [tableSaved, setTableSaved] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (!reservation) return null;
 
   const next = NEXT_STATUS[reservation.status];
 
-  const handleSave = () => {
-    updateReservation(reservation.id, {
-      name: editName, email: editEmail, phone: editPhone,
-      date: editDate, time: editTime, guests: Number(editGuests),
-      table: editTable || undefined, occasion: editOccasion || undefined, notes: editNotes || undefined,
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  const saveTable = () => {
+    updateReservation(reservation.id, { table: editTable || undefined });
+    setTableSaved(true);
+    setTimeout(() => setTableSaved(false), 2000);
   };
 
   return (
@@ -254,83 +268,50 @@ function ReservationDetailPanel({ reservationId, onClose, onPrint }: { reservati
         </button>
       </div>
 
-      <div className="space-y-3">
-        <p className="text-xs text-foreground/40 uppercase tracking-widest">Customer Information</p>
-        <div>
-          <label className="text-xs text-foreground/40 mb-1 block">Full Name</label>
-          <input className={inputCls} value={editName} onChange={(e) => setEditName(e.target.value)} />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-xs text-foreground/40 mb-1 block">Phone</label>
-            <input className={inputCls} value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs text-foreground/40 mb-1 block">Email</label>
-            <input className={inputCls} value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
-          </div>
+      {/* Customer info — read only */}
+      <div>
+        <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-2">Customer</p>
+        <div className="bg-white/[0.03] rounded-lg px-3 py-1">
+          <InfoRow label="Name"  value={reservation.name} />
+          <InfoRow label="Phone" value={reservation.phone} />
+          <InfoRow label="Email" value={reservation.email} />
         </div>
       </div>
 
+      {/* Booking info — read only */}
       <div>
-        <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Date & Time</p>
-        <div className="grid grid-cols-2 gap-2">
-          <input type="date" className={inputCls} value={editDate} onChange={(e) => setEditDate(e.target.value)} />
-          <select
-            className="w-full bg-[hsl(15,13%,12%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40"
-            value={editTime}
-            onChange={(e) => setEditTime(e.target.value)}
+        <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-2">Booking</p>
+        <div className="bg-white/[0.03] rounded-lg px-3 py-1">
+          <InfoRow label="Date"     value={reservation.date} />
+          <InfoRow label="Time"     value={reservation.time} />
+          <InfoRow label="Guests"   value={`${reservation.guests} ${reservation.guests === 1 ? "person" : "people"}`} />
+          <InfoRow label="Occasion" value={reservation.occasion} />
+          {reservation.notes && (
+            <div className="py-1.5 border-b border-white/5 last:border-0">
+              <p className="text-[10px] text-foreground/40 mb-1">Special Requests</p>
+              <p className="text-xs text-foreground/70 italic">{reservation.notes}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Table assignment — admin operational field */}
+      <div>
+        <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-2">Table Assignment</p>
+        <div className="flex gap-2">
+          <input
+            className={inputCls + " flex-1"}
+            value={editTable}
+            onChange={(e) => setEditTable(e.target.value)}
+            placeholder="e.g. T12, Table 4"
+          />
+          <button
+            onClick={saveTable}
+            className="shrink-0 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-foreground/60 hover:bg-white/10 transition-colors"
           >
-            {["12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM"].map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
+            {tableSaved ? "✓ Saved" : "Assign"}
+          </button>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-foreground/40 mb-1 block">Guests</label>
-          <select
-            className="w-full bg-[hsl(15,13%,12%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40"
-            value={editGuests}
-            onChange={(e) => setEditGuests(Number(e.target.value))}
-          >
-            {[1,2,3,4,5,6,7,8,9,10].map((n) => <option key={n} value={n}>{n} {n === 1 ? "Person" : "People"}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-foreground/40 mb-1 block">Assigned Table</label>
-          <input className={inputCls} value={editTable} onChange={(e) => setEditTable(e.target.value)} placeholder="e.g. T12" />
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs text-foreground/40 mb-1 block">Occasion</label>
-        <select
-          className="w-full bg-[hsl(15,13%,12%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40"
-          value={editOccasion}
-          onChange={(e) => setEditOccasion(e.target.value)}
-        >
-          <option value="">— None —</option>
-          <option>Anniversary</option>
-          <option>Birthday</option>
-          <option>Business Dinner</option>
-          <option>Date Night</option>
-          <option>Celebration</option>
-          <option>Other</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="text-xs text-foreground/40 mb-1 block">Special Requests</label>
-        <textarea
-          className={inputCls + " resize-none"}
-          rows={3}
-          value={editNotes}
-          onChange={(e) => setEditNotes(e.target.value)}
-          placeholder="No special requests"
-        />
       </div>
 
       {reservation.paymentPaid && (
@@ -339,25 +320,20 @@ function ReservationDetailPanel({ reservationId, onClose, onPrint }: { reservati
         </div>
       )}
 
+      {/* Status badge */}
       <div>
-        <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Reservation Status</p>
+        <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-2">Status</p>
         <span className={cn("text-xs px-2.5 py-1 rounded-full border font-medium capitalize inline-block", STATUS_STYLES[reservation.status])}>
           {reservation.status}
         </span>
       </div>
 
+      {/* Actions */}
       <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
-        <button
-          onClick={handleSave}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white/5 text-foreground border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors"
-        >
-          <Check className="w-3.5 h-3.5" /> {saved ? "Saved!" : "Save Changes"}
-        </button>
-
         {next && (
           <button
             onClick={() => updateReservationStatus(reservation.id, next)}
-            className="w-full px-4 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors capitalize"
+            className="w-full px-4 py-2.5 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors"
           >
             {NEXT_LABEL[reservation.status] ?? `Mark as ${next}`}
           </button>
@@ -381,7 +357,7 @@ function ReservationDetailPanel({ reservationId, onClose, onPrint }: { reservati
 
         <button
           onClick={() => setDeleteOpen(true)}
-          className="w-full px-4 py-2 text-red-400 text-sm hover:underline"
+          className="w-full px-4 py-2 text-red-400/70 text-xs hover:text-red-400 hover:underline transition-colors"
         >
           Delete Permanently
         </button>
@@ -398,112 +374,14 @@ function ReservationDetailPanel({ reservationId, onClose, onPrint }: { reservati
   );
 }
 
-function NewReservationForm({ onClose }: { onClose: () => void }) {
-  const { addReservation } = useRestaurantStore();
-  const [name, setName]       = useState("");
-  const [email, setEmail]     = useState("");
-  const [phone, setPhone]     = useState("");
-  const [date, setDate]       = useState("");
-  const [time, setTime]       = useState("7:00 PM");
-  const [guests, setGuests]   = useState("2");
-  const [table, setTable]     = useState("");
-  const [occasion, setOccasion] = useState("");
-  const [notes, setNotes]     = useState("");
-  const [error, setError]     = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !phone || !date || !time) { setError("Name, phone, date and time are required."); return; }
-    addReservation({ name, email, phone, date, time, guests: parseInt(guests) || 2, table: table || undefined, occasion: occasion || undefined, notes: notes || undefined });
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-[hsl(15,13%,9%)] border border-white/10 rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <CalendarCheck className="w-4 h-4 text-primary" /> New Reservation
-          </h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-foreground/50 mb-1 block">Full Name *</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Guest name" className={inputCls} required />
-            </div>
-            <div>
-              <label className="text-xs text-foreground/50 mb-1 block">Phone *</label>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 000-0000" className={inputCls} required />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-foreground/50 mb-1 block">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="guest@email.com" className={inputCls} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-foreground/50 mb-1 block">Date *</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} required />
-            </div>
-            <div>
-              <label className="text-xs text-foreground/50 mb-1 block">Time *</label>
-              <select value={time} onChange={(e) => setTime(e.target.value)} className="w-full bg-[hsl(15,13%,12%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40">
-                {["12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM"].map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-foreground/50 mb-1 block">Guests</label>
-              <select value={guests} onChange={(e) => setGuests(e.target.value)} className="w-full bg-[hsl(15,13%,12%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40">
-                {[1,2,3,4,5,6,7,8,9,10].map((n) => <option key={n} value={n}>{n} {n === 1 ? "Person" : "People"}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-foreground/50 mb-1 block">Table (optional)</label>
-              <input value={table} onChange={(e) => setTable(e.target.value)} placeholder="e.g. T12" className={inputCls} />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-foreground/50 mb-1 block">Occasion (optional)</label>
-            <select value={occasion} onChange={(e) => setOccasion(e.target.value)} className="w-full bg-[hsl(15,13%,12%)] border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40">
-              <option value="">— Select occasion —</option>
-              <option>Anniversary</option><option>Birthday</option><option>Business Dinner</option>
-              <option>Date Night</option><option>Celebration</option><option>Other</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-foreground/50 mb-1 block">Special Requests</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Dietary needs, special arrangements..." className={inputCls + " resize-none"} />
-          </div>
-          {error && <p className="text-red-400 text-xs">{error}</p>}
-          <div className="flex gap-2 pt-2">
-            <button type="submit" className="flex-1 px-4 py-2 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors">
-              Create Reservation
-            </button>
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-white/5 border border-white/10 text-foreground/60 rounded-lg text-sm hover:bg-white/10 transition-colors">
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 export default function AdminReservations() {
   const { reservations, resetReservations } = useRestaurantStore();
   const config = useRestaurantStore((s) => s.config);
-  const [filter,      setFilter]      = useState<StatusFilter>("all");
-  const [selectedId,  setSelectedId]  = useState<string | null>(null);
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [dateFilter,  setDateFilter]  = useState<"all" | "today" | "upcoming">("all");
-  const [printData,   setPrintData]   = useState<ReceiptData | null>(null);
-  const [resetOpen,   setResetOpen]   = useState(false);
+  const [filter,     setFilter]     = useState<StatusFilter>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "upcoming">("all");
+  const [printData,  setPrintData]  = useState<ReceiptData | null>(null);
+  const [resetOpen,  setResetOpen]  = useState(false);
 
   const todayStr    = new Date().toISOString().slice(0, 10);
 
@@ -569,13 +447,13 @@ export default function AdminReservations() {
       title="Reservations Manager"
       subtitle="View and manage all incoming table bookings"
       actions={
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           {allDone && (
             <button
               onClick={() => setResetOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs hover:bg-red-500/20 transition-colors"
             >
-              <RotateCcw className="w-3 h-3" /> Reset Reservations
+              <RotateCcw className="w-3 h-3" /> Reset
             </button>
           )}
           <button
@@ -584,16 +462,9 @@ export default function AdminReservations() {
           >
             <Download className="w-3 h-3" /> Export CSV
           </button>
-          <button
-            onClick={() => setShowNewForm(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-black rounded-lg text-xs font-medium hover:bg-primary/80 transition-colors"
-          >
-            <Plus className="w-3 h-3" /> New Reservation
-          </button>
         </div>
       }
     >
-      {showNewForm && <NewReservationForm onClose={() => setShowNewForm(false)} />}
       {printData && <PrintReceiptModal data={printData} onClose={() => setPrintData(null)} />}
 
       <ConfirmDialog
@@ -608,7 +479,7 @@ export default function AdminReservations() {
 
       <div className={cn("grid gap-5", selectedId ? "grid-cols-1 xl:grid-cols-3" : "grid-cols-1")}>
         <div className={selectedId ? "xl:col-span-2" : ""}>
-          <div className="flex gap-1.5 flex-wrap mb-4">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 mb-4 scrollbar-none">
             {filterButtons.map(({ key, label, count }) => {
               const isActive =
                 (key === "all"      && filter === "all" && dateFilter === "all") ||
@@ -620,7 +491,7 @@ export default function AdminReservations() {
                   key={key}
                   onClick={() => handleFilterClick(key)}
                   className={cn(
-                    "px-3 py-1 rounded-full text-xs transition-colors border",
+                    "shrink-0 px-3 py-1 rounded-full text-xs transition-colors border",
                     isActive
                       ? "bg-primary/15 text-primary border-primary/30"
                       : "bg-white/5 text-foreground/50 border-white/10 hover:bg-white/10 hover:text-foreground"

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRestaurantStore } from "@/store/restaurantStore";
-import { CalendarX, CreditCard } from "lucide-react";
+import { CalendarX, CreditCard, Users } from "lucide-react";
 import { Link } from "wouter";
 import { formatCurrency } from "@/utils/formatCurrency";
 
@@ -51,8 +51,50 @@ const paymentSchema = z.object({
 type ReservationFormValues = z.infer<typeof reservationSchema>;
 type PaymentFormValues     = z.infer<typeof paymentSchema>;
 
+// ── Seats availability banner ─────────────────────────────────────────────────
+
+function SeatsBanner({ seatsLeft, maxSeats }: { seatsLeft: number; maxSeats: number }) {
+  if (maxSeats <= 0) return null;
+
+  const pct = seatsLeft / maxSeats;
+  const urgent = seatsLeft <= 5;
+  const low    = seatsLeft <= Math.ceil(maxSeats * 0.2); // ≤20% left
+
+  if (seatsLeft <= 0) return null; // handled separately as a block
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`mt-4 flex items-center gap-3 px-4 py-3 rounded-sm border text-sm ${
+        urgent
+          ? "bg-red-500/10 border-red-500/30 text-red-400"
+          : low
+          ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+          : "bg-primary/10 border-primary/20 text-primary"
+      }`}
+    >
+      <Users className="w-4 h-4 shrink-0" />
+      <div>
+        <span className="font-semibold">{seatsLeft} {seatsLeft === 1 ? "seat" : "seats"} still available</span>
+        {urgent && <span className="text-xs ml-2 opacity-70">— book quickly!</span>}
+        {!urgent && low && <span className="text-xs ml-2 opacity-70">— filling up fast</span>}
+      </div>
+      <div className="ml-auto flex-shrink-0 w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{
+            width: `${Math.min(100, Math.round(pct * 100))}%`,
+            background: urgent ? "#f87171" : low ? "#fbbf24" : "var(--color-primary)",
+          }}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
 export default function ReservationsPage() {
-  const { addReservation, quickControls, reservationSettings, config } = useRestaurantStore();
+  const { addReservation, quickControls, reservationSettings, config, reservations } = useRestaurantStore();
   const [step, setStep]         = useState<"form" | "payment" | "success">("form");
   const [formData, setFormData] = useState<ReservationFormValues | null>(null);
   const [sessionData, setLocalSession] = useState(getSessionData);
@@ -61,6 +103,18 @@ export default function ReservationsPage() {
   useEffect(() => {
     document.title = `Reservations | ${config.name}`;
   }, [config.name]);
+
+  // ── Compute seats availability ──────────────────────────────────────────────
+  const seatsBooked = useMemo(() =>
+    reservations
+      .filter((r) => r.status === "pending" || r.status === "confirmed" || r.status === "seated")
+      .reduce((sum, r) => sum + r.guests, 0),
+    [reservations]
+  );
+
+  const maxSeats  = reservationSettings.maxTotalSeats ?? 0;
+  const seatsLeft = maxSeats > 0 ? Math.max(0, maxSeats - seatsBooked) : Infinity;
+  const fullyBooked = maxSeats > 0 && seatsLeft <= 0;
 
   // Session lockout check (when payment is OFF)
   useEffect(() => {
@@ -89,6 +143,17 @@ export default function ReservationsPage() {
   });
 
   const onFormSubmit = (data: ReservationFormValues) => {
+    const requested = parseInt(data.guests, 10) || 1;
+    // Capacity check
+    if (maxSeats > 0 && requested > seatsLeft) {
+      form.setError("guests", {
+        type: "manual",
+        message: seatsLeft <= 0
+          ? "We're fully booked — no seats available."
+          : `Only ${seatsLeft} seat${seatsLeft === 1 ? "" : "s"} left. Please reduce your party size.`,
+      });
+      return;
+    }
     setFormData(data);
     if (reservationSettings.requirePayment) {
       setStep("payment");
@@ -143,7 +208,8 @@ export default function ReservationsPage() {
     setStep("form");
   };
 
-  // Restaurant closed, or reservations disabled
+  // ── Gating states ───────────────────────────────────────────────────────────
+
   if (!quickControls.restaurantOpen || !quickControls.acceptReservations) {
     const closedForBusiness = !quickControls.restaurantOpen;
     return (
@@ -174,9 +240,38 @@ export default function ReservationsPage() {
     );
   }
 
+  // Fully booked gate
+  if (fullyBooked && step !== "success") {
+    return (
+      <Layout>
+        <SectionContainer className="bg-background pt-12 md:pt-24 min-h-[70vh] flex flex-col items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center bg-card p-12 border border-border rounded-sm max-w-2xl w-full"
+          >
+            <div className="w-20 h-20 border border-red-400/30 rounded-full flex items-center justify-center mx-auto mb-8">
+              <Users className="w-8 h-8 text-red-400" />
+            </div>
+            <h1 className="font-serif text-3xl md:text-4xl uppercase tracking-widest mb-4">Fully Booked</h1>
+            <p className="text-muted-foreground text-lg mb-4 leading-relaxed">
+              We're sorry — all {maxSeats} seats are currently reserved for the selected period.
+            </p>
+            <p className="text-muted-foreground text-sm mb-8">
+              Please call us directly — we may be able to accommodate your party.
+            </p>
+            <Button asChild variant="outline" className="rounded-none tracking-widest uppercase border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+              <Link href="/contact">Contact Us</Link>
+            </Button>
+          </motion.div>
+        </SectionContainer>
+      </Layout>
+    );
+  }
+
   // Session locked
   if (isLocked && step !== "success") {
-    const elapsed  = Date.now() - sessionData.lastAt;
+    const elapsed   = Date.now() - sessionData.lastAt;
     const remaining = Math.max(0, LOCKOUT_MS - elapsed);
     const hrs  = Math.floor(remaining / 3600000);
     const mins = Math.floor((remaining % 3600000) / 60000);
@@ -207,6 +302,11 @@ export default function ReservationsPage() {
     );
   }
 
+  // ── Main form ───────────────────────────────────────────────────────────────
+
+  // Compute the max guests selectable (capped by seats left)
+  const maxGuestOptions = reservationSettings.maxPartySize;
+
   return (
     <Layout>
       <SectionContainer className="bg-background pt-12 md:pt-20">
@@ -215,11 +315,17 @@ export default function ReservationsPage() {
             Restaurant Reservation
           </h1>
           <p className="text-muted-foreground">Secure your table for an unforgettable evening.</p>
+
           {reservationSettings.requirePayment && (
             <div className="mt-4 flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-sm text-sm text-primary">
               <CreditCard className="w-4 h-4" />
               <span>A reservation fee of {formatCurrency(reservationSettings.paymentAmount)} is required to confirm your booking.</span>
             </div>
+          )}
+
+          {/* Seats availability banner — shown when capacity is configured */}
+          {maxSeats > 0 && step === "form" && !fullyBooked && isFinite(seatsLeft) && (
+            <SeatsBanner seatsLeft={seatsLeft} maxSeats={maxSeats} />
           )}
         </div>
 
@@ -327,7 +433,12 @@ export default function ReservationsPage() {
                       )} />
                       <FormField control={form.control} name="guests" render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs uppercase tracking-widest text-muted-foreground">Guests</FormLabel>
+                          <FormLabel className="text-xs uppercase tracking-widest text-muted-foreground">
+                            Guests
+                            {isFinite(seatsLeft) && seatsLeft > 0 && (
+                              <span className="ml-1 text-primary normal-case font-normal">({seatsLeft} left)</span>
+                            )}
+                          </FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger className="bg-background border-border rounded-none h-12">
@@ -335,10 +446,17 @@ export default function ReservationsPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {[1,2,3,4,5,6,7,8].map((num) => (
-                                <SelectItem key={num} value={num.toString()}>{num} {num === 1 ? "Person" : "People"}</SelectItem>
-                              ))}
-                              <SelectItem value="9">9+ People</SelectItem>
+                              {Array.from({ length: maxGuestOptions }, (_, i) => i + 1)
+                                .filter((n) => !isFinite(seatsLeft) || n <= seatsLeft)
+                                .map((num) => (
+                                  <SelectItem key={num} value={num.toString()}>
+                                    {num} {num === 1 ? "Person" : "People"}
+                                  </SelectItem>
+                                ))}
+                              {/* Show 9+ only if there's room and party size allows */}
+                              {maxGuestOptions > 9 && (!isFinite(seatsLeft) || seatsLeft > 9) && (
+                                <SelectItem value="9">9+ People</SelectItem>
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />

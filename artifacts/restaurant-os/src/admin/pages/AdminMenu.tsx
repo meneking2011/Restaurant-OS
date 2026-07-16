@@ -364,13 +364,13 @@ export default function AdminMenu() {
       )}
 
       {/* Category tabs */}
-      <div className="flex gap-1.5 flex-wrap mb-5">
+      <div className="flex gap-1.5 overflow-x-auto pb-1 mb-5 scrollbar-none">
         {(["all", ...CATEGORIES] as string[]).map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
             className={cn(
-              "px-3 py-1 rounded-full text-xs capitalize transition-colors border",
+              "shrink-0 px-3 py-1 rounded-full text-xs capitalize transition-colors border",
               activeCategory === cat
                 ? "bg-primary/15 text-primary border-primary/30"
                 : "bg-white/5 text-foreground/50 border-white/10 hover:bg-white/10 hover:text-foreground"
