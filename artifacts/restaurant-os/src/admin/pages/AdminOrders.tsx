@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { Order, OrderStatus } from "@/types/restaurant";
 import { AdminLayout } from "../layout/AdminLayout";
@@ -13,16 +13,16 @@ import {
 import { formatCurrency } from "@/utils/formatCurrency";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 
-type StatusFilter = "all" | "new" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled";
+type StatusFilter  = "all" | "new" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled";
 type PaymentFilter = "all" | "pending_receipt" | "pending_verification" | "verified" | "rejected";
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: React.ElementType }> = {
-  new:             { label: "New",             color: "text-blue-400 bg-blue-400/10 border-blue-400/20",            icon: ShoppingBag },
-  preparing:       { label: "Preparing",       color: "text-amber-400 bg-amber-400/10 border-amber-400/20",         icon: ChefHat     },
-  ready:           { label: "Ready",           color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",   icon: CheckCircle },
-  out_for_delivery:{ label: "Out for Delivery",color: "text-blue-300 bg-blue-300/10 border-blue-300/20",            icon: Truck       },
-  delivered:       { label: "Delivered",       color: "text-foreground/40 bg-white/5 border-white/10",              icon: CheckCircle2},
-  cancelled:       { label: "Cancelled",       color: "text-red-400 bg-red-400/10 border-red-400/20",               icon: XCircle    },
+  new:             { label: "New",             color: "text-blue-400 bg-blue-400/10 border-blue-400/20",             icon: ShoppingBag  },
+  preparing:       { label: "Preparing",       color: "text-amber-400 bg-amber-400/10 border-amber-400/20",          icon: ChefHat      },
+  ready:           { label: "Ready",           color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",    icon: CheckCircle  },
+  out_for_delivery:{ label: "Out for Delivery",color: "text-blue-300 bg-blue-300/10 border-blue-300/20",             icon: Truck        },
+  delivered:       { label: "Delivered",       color: "text-foreground/40 bg-white/5 border-white/10",               icon: CheckCircle2 },
+  cancelled:       { label: "Cancelled",       color: "text-red-400 bg-red-400/10 border-red-400/20",                icon: XCircle      },
 };
 
 const STATUS_FLOW: Partial<Record<OrderStatus, OrderStatus>> = {
@@ -32,10 +32,10 @@ const STATUS_FLOW: Partial<Record<OrderStatus, OrderStatus>> = {
 };
 
 const PAYMENT_STATUS_CONFIG = {
-  pending_receipt:      { label: "Awaiting Receipt",        color: "text-amber-400 bg-amber-400/10 border-amber-400/20",    icon: Upload    },
-  pending_verification: { label: "Pending Verification",    color: "text-blue-400 bg-blue-400/10 border-blue-400/20",       icon: Hourglass },
-  verified:             { label: "Payment Verified",        color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",icon: CheckCircle2 },
-  rejected:             { label: "Payment Rejected",        color: "text-red-400 bg-red-400/10 border-red-400/20",          icon: XCircle   },
+  pending_receipt:      { label: "Awaiting Receipt",     color: "text-amber-400 bg-amber-400/10 border-amber-400/20",     icon: Upload      },
+  pending_verification: { label: "Pending Verification", color: "text-blue-400 bg-blue-400/10 border-blue-400/20",        icon: Hourglass   },
+  verified:             { label: "Verified",             color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",icon: CheckCircle2},
+  rejected:             { label: "Rejected",             color: "text-red-400 bg-red-400/10 border-red-400/20",            icon: XCircle     },
 };
 
 function exportOrdersCSV(orders: Order[]) {
@@ -124,19 +124,13 @@ function RejectPaymentDialog({ orderId, onClose }: { orderId: string; onClose: (
 
 // ── Order detail panel ────────────────────────────────────────────────────────
 
-function OrderDetailPanel({
-  orderId, onClose, onPrint,
-}: {
-  orderId: string;
-  onClose: () => void;
-  onPrint: () => void;
-}) {
-  const order = useRestaurantStore((s) => s.orders.find((o) => o.id === orderId));
+function OrderDetailPanel({ orderId, onClose, onPrint }: { orderId: string; onClose: () => void; onPrint: () => void }) {
+  const order        = useRestaurantStore((s) => s.orders.find((o) => o.id === orderId));
   const bankAccounts = useRestaurantStore((s) => s.bankAccounts);
   const { updateOrderStatus, verifyOrderPayment } = useRestaurantStore();
 
-  const [showReceipt, setShowReceipt]   = useState(false);
-  const [showReject,  setShowReject]    = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [showReject,  setShowReject]  = useState(false);
 
   if (!order) return null;
 
@@ -170,7 +164,7 @@ function OrderDetailPanel({
 
         {/* Customer */}
         <div>
-          <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Customer & Delivery</p>
+          <p className="text-xs text-foreground/40 uppercase tracking-widest mb-2">Customer &amp; Delivery</p>
           <p className="text-sm font-semibold text-foreground">{order.customerName}</p>
           <p className="text-xs text-foreground/50">{order.email}</p>
           <p className="text-xs text-foreground/50">{order.phone}</p>
@@ -204,7 +198,6 @@ function OrderDetailPanel({
             <p className="text-xs text-foreground/40">Receipt submitted {new Date(order.receiptUploadedAt).toLocaleString()}</p>
           )}
 
-          {/* Receipt preview */}
           {order.receiptUrl && (
             <button
               onClick={() => setShowReceipt(true)}
@@ -216,7 +209,6 @@ function OrderDetailPanel({
             </button>
           )}
 
-          {/* Verify / Reject buttons */}
           {(canVerify || canReject) && (
             <div className="flex gap-2 pt-1">
               {canVerify && (
@@ -283,7 +275,7 @@ function OrderDetailPanel({
           </span>
         </div>
 
-        {/* Order advancement — only after payment verified */}
+        {/* Advance / cancel */}
         {order.status !== "delivered" && order.status !== "cancelled" && (
           <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
             {canAdvance && nextStatus && (
@@ -296,9 +288,9 @@ function OrderDetailPanel({
             )}
             {!canAdvance && order.paymentStatus !== "verified" && (
               <p className="text-xs text-foreground/40 text-center">
-                {order.paymentStatus === "pending_receipt" && "Waiting for customer to upload receipt"}
+                {order.paymentStatus === "pending_receipt"      && "Waiting for customer to upload receipt"}
                 {order.paymentStatus === "pending_verification" && "Verify or reject the payment to advance this order"}
-                {order.paymentStatus === "rejected" && "Payment was rejected — order cannot advance"}
+                {order.paymentStatus === "rejected"             && "Payment was rejected — order cannot advance"}
               </p>
             )}
             <button
@@ -327,12 +319,12 @@ export default function AdminOrders() {
   const { orders, resetOrders } = useRestaurantStore();
   const config = useRestaurantStore((s) => s.config);
 
-  const [statusFilter,  setStatusFilter]  = useState<StatusFilter>("all");
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
+  const [statusFilter,    setStatusFilter]    = useState<StatusFilter>("all");
+  const [paymentFilter,   setPaymentFilter]   = useState<PaymentFilter>("all");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [search,    setSearch]    = useState("");
-  const [printData, setPrintData] = useState<ReceiptData | null>(null);
-  const [resetOpen, setResetOpen] = useState(false);
+  const [search,          setSearch]          = useState("");
+  const [printData,       setPrintData]       = useState<ReceiptData | null>(null);
+  const [resetOpen,       setResetOpen]       = useState(false);
 
   const pendingVerificationCount = orders.filter((o) => o.paymentStatus === "pending_verification").length;
   const allDone = orders.length > 0 && orders.every((o) => o.status === "delivered" || o.status === "cancelled");
@@ -365,21 +357,21 @@ export default function AdminOrders() {
   };
 
   const statusFilters: { key: StatusFilter; label: string }[] = [
-    { key: "all",             label: "All" },
-    { key: "new",             label: "New" },
-    { key: "preparing",       label: "Preparing" },
-    { key: "ready",           label: "Ready" },
-    { key: "out_for_delivery",label: "Out for Delivery" },
-    { key: "delivered",       label: "Delivered" },
-    { key: "cancelled",       label: "Cancelled" },
+    { key: "all",             label: "All"             },
+    { key: "new",             label: "New"             },
+    { key: "preparing",       label: "Preparing"       },
+    { key: "ready",           label: "Ready"           },
+    { key: "out_for_delivery",label: "Out for Delivery"},
+    { key: "delivered",       label: "Delivered"       },
+    { key: "cancelled",       label: "Cancelled"       },
   ];
 
   const paymentFilters: { key: PaymentFilter; label: string; icon?: React.ElementType }[] = [
-    { key: "all",                  label: "All Payments" },
-    { key: "pending_receipt",      label: "Awaiting Receipt",     icon: Upload    },
-    { key: "pending_verification", label: "Pending Verification", icon: Hourglass },
-    { key: "verified",             label: "Verified",             icon: CheckCircle2 },
-    { key: "rejected",             label: "Rejected",             icon: XCircle   },
+    { key: "all",                  label: "All Payments"          },
+    { key: "pending_receipt",      label: "Awaiting Receipt",     icon: Upload      },
+    { key: "pending_verification", label: "Pending Verification", icon: Hourglass   },
+    { key: "verified",             label: "Verified",             icon: CheckCircle2},
+    { key: "rejected",             label: "Rejected",             icon: XCircle     },
   ];
 
   return (
@@ -425,65 +417,73 @@ export default function AdminOrders() {
       />
 
       <div className={cn("grid gap-5", selectedOrderId ? "grid-cols-1 xl:grid-cols-[1fr_360px]" : "grid-cols-1")}>
-        <div>
-          {/* Status filters */}
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <div className="flex gap-1.5 flex-wrap flex-1">
-              {statusFilters.map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setStatusFilter(key)}
-                  className={cn(
-                    "px-3 py-1 rounded-full text-xs capitalize transition-colors border",
-                    statusFilter === key
-                      ? "bg-primary/15 text-primary border-primary/30"
-                      : "bg-white/5 text-foreground/50 border-white/10 hover:bg-white/10 hover:text-foreground"
-                  )}
-                >
-                  {label}
-                  <span className="opacity-60 ml-1">
-                    {key === "all" ? orders.length : orders.filter((o) => o.status === key).length}
-                  </span>
-                </button>
-              ))}
+        <div className="min-w-0">
+
+          {/* ── Filters row ── */}
+          <div className="space-y-2 mb-4">
+            {/* Status pills — horizontal scroll on mobile */}
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5 overflow-x-auto pb-1 flex-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {statusFilters.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setStatusFilter(key)}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors border shrink-0",
+                      statusFilter === key
+                        ? "bg-primary/15 text-primary border-primary/30"
+                        : "bg-white/5 text-foreground/50 border-white/10 hover:bg-white/10 hover:text-foreground"
+                    )}
+                  >
+                    {label}
+                    <span className="opacity-60 ml-1">
+                      {key === "all" ? orders.length : orders.filter((o) => o.status === key).length}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search orders…"
-                className="pl-8 pr-4 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/40 w-44"
-              />
+
+            {/* Payment pills + search */}
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5 overflow-x-auto pb-1 flex-nowrap flex-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {paymentFilters.map(({ key, label, icon: Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setPaymentFilter(key)}
+                    className={cn(
+                      "flex items-center gap-1 px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors border shrink-0",
+                      paymentFilter === key
+                        ? key === "pending_verification"
+                          ? "bg-amber-400/15 text-amber-400 border-amber-400/30"
+                          : "bg-primary/15 text-primary border-primary/30"
+                        : "bg-white/5 text-foreground/50 border-white/10 hover:bg-white/10 hover:text-foreground"
+                    )}
+                  >
+                    {Icon && <Icon className="w-3 h-3 shrink-0" />}
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {/* Search — fixed width, won't push pills */}
+              <div className="relative shrink-0">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30 pointer-events-none" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search…"
+                  className="pl-8 pr-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/40 w-32 sm:w-44"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Payment filters */}
-          <div className="flex gap-1.5 flex-wrap mb-4">
-            {paymentFilters.map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                onClick={() => setPaymentFilter(key)}
-                className={cn(
-                  "flex items-center gap-1 px-3 py-1 rounded-full text-xs transition-colors border",
-                  paymentFilter === key
-                    ? key === "pending_verification"
-                      ? "bg-amber-400/15 text-amber-400 border-amber-400/30"
-                      : "bg-primary/15 text-primary border-primary/30"
-                    : "bg-white/5 text-foreground/50 border-white/10 hover:bg-white/10 hover:text-foreground"
-                )}
-              >
-                {Icon && <Icon className="w-3 h-3" />}
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Orders table */}
+          {/* ── Orders list ── */}
           <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+            {/* Desktop-only header */}
             <div className="hidden lg:grid grid-cols-[1.5fr_1.2fr_1fr_1fr_0.8fr_0.7fr] text-xs text-foreground/40 uppercase tracking-widest px-4 py-3 border-b border-white/10">
               <span>Customer</span>
-              <span>Date & Time</span>
+              <span>Date &amp; Time</span>
               <span>Order Status</span>
               <span>Payment</span>
               <span>Total</span>
@@ -494,7 +494,7 @@ export default function AdminOrders() {
               <div className="text-center py-14 text-foreground/30 text-sm flex flex-col items-center gap-2">
                 <ShoppingBag className="w-8 h-8 opacity-30" />
                 {orders.length === 0
-                  ? "No orders yet. Orders placed on the customer site will appear here."
+                  ? "No orders yet. Orders placed on the customer site will appear here in real time."
                   : "No orders match this filter."}
               </div>
             )}
@@ -504,53 +504,87 @@ export default function AdminOrders() {
               const payCfg  = PAYMENT_STATUS_CONFIG[order.paymentStatus];
               const PayIcon = payCfg.icon;
               const isSelected = selectedOrderId === order.id;
-              const hasPendingVerification = order.paymentStatus === "pending_verification";
+              const hasPending = order.paymentStatus === "pending_verification";
+
+              const rowCls = cn(
+                "border-b border-white/5 last:border-0 cursor-pointer transition-colors hover:bg-white/[0.03]",
+                isSelected && "bg-primary/5",
+                hasPending && !isSelected && "border-l-2 border-l-amber-400/40"
+              );
+
+              const dateStr = new Date(order.orderedAt).toLocaleDateString();
+              const timeStr = new Date(order.orderedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
               return (
-                <div
-                  key={order.id}
-                  onClick={() => setSelectedOrderId(isSelected ? null : order.id)}
-                  className={cn(
-                    "grid grid-cols-1 lg:grid-cols-[1.5fr_1.2fr_1fr_1fr_0.8fr_0.7fr] items-center px-4 py-3.5 border-b border-white/5 last:border-0 cursor-pointer transition-colors hover:bg-white/[0.03] gap-2 lg:gap-0",
-                    isSelected && "bg-primary/5",
-                    hasPendingVerification && !isSelected && "border-l-2 border-l-amber-400/40"
-                  )}
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{order.customerName}</p>
-                    <p className="text-xs text-foreground/40 font-mono">#{order.id.replace("ord-", "").slice(0, 8)}</p>
+                <div key={order.id} onClick={() => setSelectedOrderId(isSelected ? null : order.id)}>
+
+                  {/* ── Mobile card (< lg) ── */}
+                  <div className={cn("lg:hidden px-4 py-3.5", rowCls)}>
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{order.customerName}</p>
+                        <p className="text-xs text-foreground/40 font-mono">#{order.id.replace("ord-", "").slice(0, 8)}</p>
+                      </div>
+                      <span className="text-sm font-semibold text-foreground whitespace-nowrap shrink-0">
+                        {formatCurrency(order.totalAmount)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full border font-medium flex items-center gap-1 shrink-0", cfg.color)}>
+                        <cfg.icon className="w-2.5 h-2.5" /> {cfg.label}
+                      </span>
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full border font-medium flex items-center gap-1 shrink-0", payCfg.color)}>
+                        <PayIcon className="w-2.5 h-2.5" />
+                        {payCfg.label}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-foreground/40 mt-2 flex items-center gap-1">
+                      <Clock className="w-3 h-3 shrink-0" />
+                      {dateStr} {timeStr}
+                    </p>
                   </div>
-                  <div className="text-xs text-foreground/60 flex items-center gap-1">
-                    <Clock className="w-3 h-3 shrink-0" />
-                    <span>
-                      {new Date(order.orderedAt).toLocaleDateString()}{" "}
-                      {new Date(order.orderedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+
+                  {/* ── Desktop table row (≥ lg) ── */}
+                  <div className={cn(
+                    "hidden lg:grid grid-cols-[1.5fr_1.2fr_1fr_1fr_0.8fr_0.7fr] items-center px-4 py-3.5",
+                    rowCls
+                  )}>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{order.customerName}</p>
+                      <p className="text-xs text-foreground/40 font-mono">#{order.id.replace("ord-", "").slice(0, 8)}</p>
+                    </div>
+                    <div className="text-xs text-foreground/60 flex items-center gap-1">
+                      <Clock className="w-3 h-3 shrink-0" />
+                      <span>{dateStr} {timeStr}</span>
+                    </div>
+                    <span className={cn("text-xs px-2 py-0.5 rounded-full border font-medium w-fit flex items-center gap-1", cfg.color)}>
+                      <cfg.icon className="w-2.5 h-2.5" /> {cfg.label}
                     </span>
+                    <span className={cn("text-xs px-2 py-0.5 rounded-full border font-medium w-fit flex items-center gap-1", payCfg.color)}>
+                      <PayIcon className="w-2.5 h-2.5" />
+                      <span className="truncate max-w-[90px]">{payCfg.label}</span>
+                    </span>
+                    <span className="text-sm font-medium text-foreground">{formatCurrency(order.totalAmount)}</span>
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => setSelectedOrderId(isSelected ? null : order.id)}
+                        className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+                        title="View details"
+                      >
+                        <Search className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => openPrintModal(order)}
+                        className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+                        title="Print receipt"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <span className={cn("text-xs px-2 py-0.5 rounded-full border font-medium capitalize w-fit flex items-center gap-1", cfg.color)}>
-                    <cfg.icon className="w-2.5 h-2.5" /> {cfg.label}
-                  </span>
-                  <span className={cn("text-xs px-2 py-0.5 rounded-full border font-medium w-fit flex items-center gap-1", payCfg.color.split(" ").slice(0,3).join(" "))}>
-                    <PayIcon className="w-2.5 h-2.5" />
-                    <span className="truncate max-w-[90px]">{payCfg.label}</span>
-                  </span>
-                  <span className="text-sm font-medium text-foreground">{formatCurrency(order.totalAmount)}</span>
-                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => setSelectedOrderId(isSelected ? null : order.id)}
-                      className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
-                      title="View details"
-                    >
-                      <Search className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => openPrintModal(order)}
-                      className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
-                      title="Print receipt"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+
                 </div>
               );
             })}
