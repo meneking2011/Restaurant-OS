@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, UtensilsCrossed, ConciergeBell, Star,
   CalendarCheck, Settings, Flame, ExternalLink, ShoppingBag,
-  Images, BarChart3, Building2, LogOut, Globe, FolderOpen,
+  Images, Building2, LogOut, Globe,
   Navigation, FileText, Palette, Library,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,6 @@ const navItems = [
   { href: "/admin/pages",        label: "Pages",           icon: FileText },
   { href: "/admin/services",     label: "Services",        icon: ConciergeBell },
   { href: "/admin/testimonials", label: "Testimonials",    icon: Star },
-  { href: "/admin/analytics",    label: "Analytics",       icon: BarChart3 },
   { href: "/admin/settings",     label: "Settings",        icon: Settings },
 ];
 

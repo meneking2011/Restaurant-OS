@@ -1,33 +1,58 @@
+import { useState } from "react";
 import { AdminLayout } from "../layout/AdminLayout";
 import { Link } from "wouter";
 import { useRestaurantStore } from "@/store/restaurantStore";
-import { Globe, FileText, Navigation, Palette, Image, BarChart3, ExternalLink } from "lucide-react";
+import { forceSyncNow } from "@/lib/tenantSync";
+import { Globe, FileText, Navigation, Palette, Image, ExternalLink, Upload, CheckCircle2, Loader2 } from "lucide-react";
 
 const websiteModules = [
-  { label: "Pages Manager", description: "Control page visibility, routes, and display settings", icon: FileText, href: "/admin/pages", color: "text-blue-400 bg-blue-400/10" },
-  { label: "Navigation Manager", description: "Edit hamburger menu links and their order", icon: Navigation, href: "/admin/navigation", color: "text-purple-400 bg-purple-400/10" },
-  { label: "Design Tokens", description: "Customize colors, fonts, buttons, cards and appearance", icon: Palette, href: "/admin/design-tokens", color: "text-primary bg-primary/10" },
-  { label: "Media Library", description: "Manage all images, files and uploads", icon: Image, href: "/admin/media", color: "text-emerald-400 bg-emerald-400/10" },
-  { label: "Analytics", description: "Track visits, orders and customer behavior", icon: BarChart3, href: "/admin/analytics", color: "text-amber-400 bg-amber-400/10" },
-  { label: "Restaurant Profile", description: "Update restaurant profile, hours, and contact info", icon: Globe, href: "/admin/business", color: "text-rose-400 bg-rose-400/10" },
+  { label: "Pages Manager",       description: "Control page visibility, routes, and display settings", icon: FileText,   href: "/admin/pages",         color: "text-blue-400 bg-blue-400/10"    },
+  { label: "Navigation Manager",  description: "Edit hamburger menu links and their order",             icon: Navigation, href: "/admin/navigation",     color: "text-purple-400 bg-purple-400/10" },
+  { label: "Design Tokens",       description: "Customize colors, fonts, buttons, cards and appearance",icon: Palette,    href: "/admin/design-tokens",  color: "text-primary bg-primary/10"      },
+  { label: "Media Library",       description: "Manage all images, files and uploads",                  icon: Image,      href: "/admin/media",          color: "text-emerald-400 bg-emerald-400/10" },
+  { label: "Restaurant Profile",  description: "Update restaurant profile, hours, and contact info",    icon: Globe,      href: "/admin/business",       color: "text-rose-400 bg-rose-400/10"   },
 ];
 
 export default function AdminWebsite() {
   const { config, quickControls, updateQuickControls } = useRestaurantStore();
+  const [publishing, setPublishing] = useState(false);
+  const [published,  setPublished]  = useState(false);
+
+  const handlePublish = async () => {
+    setPublishing(true);
+    setPublished(false);
+    try {
+      await forceSyncNow();
+      setPublished(true);
+      setTimeout(() => setPublished(false), 3000);
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   return (
     <AdminLayout
       title="Website Manager"
       subtitle="Manage all aspects of your customer-facing website"
       actions={
-        <a
-          href="/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors"
-        >
-          <ExternalLink className="w-3.5 h-3.5" /> View Live Site
-        </a>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handlePublish}
+            disabled={publishing}
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-black rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-60"
+          >
+            {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : published ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
+            {publishing ? "Publishing…" : published ? "Published!" : "Publish Changes"}
+          </button>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-white/5 border border-white/10 text-foreground/70 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5" /> View Live Site
+          </a>
+        </div>
       }
     >
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">

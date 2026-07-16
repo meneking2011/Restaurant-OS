@@ -245,13 +245,16 @@ function BankAccountForm({
       return;
     }
     setError("");
+    // Never pass undefined to Firestore — use empty string for optional fields.
+    // Display code already guards with `ba.sortCode && (...)` so empty strings
+    // are treated the same as absent.
     onSave({
       bankName:      form.bankName.trim(),
       accountName:   form.accountName.trim(),
       accountNumber: form.accountNumber.trim(),
-      sortCode:      form.sortCode.trim()  || undefined,
-      iban:          form.iban.trim()      || undefined,
-      swiftBic:      form.swiftBic.trim()  || undefined,
+      sortCode:      form.sortCode.trim()  || "",
+      iban:          form.iban.trim()      || "",
+      swiftBic:      form.swiftBic.trim()  || "",
       enabled:       form.enabled,
     });
   };

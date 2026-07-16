@@ -27,7 +27,6 @@ const AdminTestimonials = lazy(() => import("@/admin/pages/AdminTestimonials"));
 const AdminReservations = lazy(() => import("@/admin/pages/AdminReservations"));
 const AdminOrders = lazy(() => import("@/admin/pages/AdminOrders"));
 const AdminGallery = lazy(() => import("@/admin/pages/AdminGallery"));
-const AdminAnalytics = lazy(() => import("@/admin/pages/AdminAnalytics"));
 const AdminBusinessDetails = lazy(() => import("@/admin/pages/AdminBusinessDetails"));
 const AdminSettings = lazy(() => import("@/admin/pages/AdminSettings"));
 const AdminDesignTokens = lazy(() => import("@/admin/pages/AdminDesignTokens"));
@@ -123,7 +122,6 @@ function Router() {
         <Route path="/admin/pages" component={() => <RequireAuth component={AdminPages} />} />
         <Route path="/admin/services" component={() => <RequireAuth component={AdminServices} />} />
         <Route path="/admin/testimonials" component={() => <RequireAuth component={AdminTestimonials} />} />
-        <Route path="/admin/analytics" component={() => <RequireAuth component={AdminAnalytics} />} />
         <Route path="/admin/settings" component={() => <RequireAuth component={AdminSettings} />} />
 
         <Route path="/pages/:slug">

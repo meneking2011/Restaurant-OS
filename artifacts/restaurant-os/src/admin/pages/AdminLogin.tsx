@@ -79,10 +79,12 @@ export default function AdminLogin() {
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
           <div>
-            <label className="text-xs text-foreground/60 mb-1.5 block">Email</label>
+            <label htmlFor="login-email" className="text-xs text-foreground/60 mb-1.5 block">Email</label>
             <input
+              id="login-email"
+              name="email"
               type="email"
               required
               autoComplete="email"
@@ -93,8 +95,10 @@ export default function AdminLogin() {
             />
           </div>
           <div>
-            <label className="text-xs text-foreground/60 mb-1.5 block">Password</label>
+            <label htmlFor="login-password" className="text-xs text-foreground/60 mb-1.5 block">Password</label>
             <input
+              id="login-password"
+              name="password"
               type="password"
               required
               minLength={6}

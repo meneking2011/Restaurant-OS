@@ -1,16 +1,47 @@
 ---
 name: RestaurantOS notification/gating patterns
-description: Conventions for admin notifications, closed-state page gating, and map embeds in the RestaurantOS artifact (and similar admin+customer store-driven apps).
+description: activityLog-as-notifications convention, closed-state page gating, keyless map embeds, toggle sync, Firestore undefined fix
 ---
 
-**Admin notifications are just `activityLog` entries.** `NotificationsPanel` (in `AdminLayout`) reads `orders`, `reservations`, and `activityLog` from the Zustand store — it has no separate notification system. Any new customer-facing action that should notify the admin (new review, new contact message, etc.) just needs to call `addActivityLog({ message, detail })` or push an entry inline where the record is created.
-**Why:** avoids building a parallel notification mechanism; keeps one source of truth for "things the admin should see."
-**How to apply:** when adding any new customer-submitted content type, always add an `activityLog` push at the point of creation, not just at read time.
+## Toggle / Quick Controls Sync
+All on/off toggles (restaurantOpen, acceptReservations, onlineOrders, whatsapp, maintenanceMode) read from a single `quickControls` object in the Zustand store and call `updateQuickControls`. They are already synced — any change in Dashboard, Website page, or BusinessDetails/Delivery/Reservations tabs is immediately reflected everywhere. No extra wiring needed.
 
-**Closed-state gating uses a per-page early-return pattern, not a global route guard.** `ReservationsPage` and `CheckoutPage` each have an early `if (!quickControls.xxx) return <PausedScreen/>` before their main render, keyed off individual `quickControls` flags (`acceptReservations`, `onlineOrders`, and now `restaurantOpen`). `MenuPage` instead disables just the "Add to Order" buttons + shows a banner, since menu browsing should stay available even when closed.
-**Why:** the product requirement was "browse everything except ordering/reservations/menu-ordering" — a global route guard would have over-blocked.
-**How to apply:** for a new "gate this page when X" requirement, check the flag inside the page component itself; don't add a router-level guard.
+**Why:** The store is the single source of truth; all toggle components subscribe to the same `quickControls` selector.
 
-**No paid Maps API is configured, and none should be added without asking.** For "show a map" requirements, use the free/keyless OpenStreetMap iframe embed (`https://www.openstreetmap.org/export/embed.html?bbox=...&marker=lat,lng`) driven by manually-entered `lat`/`lng` on `RestaurantConfig.address`, and use a plain Google Maps URL (`google.com/maps/search` or `/dir`) for "open in Maps" links/buttons.
-**Why:** no Maps integration/API key exists in this project; OSM embeds require no key and satisfy "live map preview" asks without new billing.
-**How to apply:** reach for the OSM embed + Google Maps deep link pattern first for any future "show/find us on a map" feature, rather than proposing a paid Maps integration.
+## Firestore: Never Send Undefined
+Firestore throws if any field value is `undefined`. Two defences are in place:
+1. `BankAccountForm.handleSave()` — optional fields (sortCode, iban, swiftBic) use `|| ""` not `|| undefined`.
+2. `tenantSync.ts` — `sanitizeForFirestore()` recursively strips `undefined` keys from the entire state object before every `setDoc` call.
+
+**Why:** Bank account optional fields were previously saved as `undefined`, causing Firestore write failures.
+
+**How to apply:** Any new optional string field passed to Firestore must use `""` as the empty fallback, never `undefined`. The tenantSync sanitizer catches escapes, but BankAccountForm is the known origin.
+
+## Force Publish
+`forceSyncNow()` exported from `tenantSync.ts` writes the current store state to Firestore immediately (no debounce). The AdminWebsite "Publish Changes" button calls it. Individual section save buttons already commit to the store → Firestore via the 600ms debounce in tenantSync; force sync is only needed for explicit user-triggered publish.
+
+## Google Sign-In
+`loginWithGoogle` in `auth.tsx`:
+- Tries `signInWithPopup` first.
+- On `auth/popup-blocked`, falls back to `signInWithRedirect` (popup is blocked in iframes like Replit preview pane).
+- `getRedirectResult(auth)` is called on mount to collect redirect sign-in results.
+- Shows a clear error for `auth/unauthorized-domain` (Firebase console needs the Replit/production domain added to authorized domains).
+
+## Analytics Removed
+`AdminAnalytics.tsx` file still exists but is no longer routed or linked. Route removed from App.tsx, nav item removed from AdminSidebar.tsx, module card removed from AdminWebsite.tsx.
+
+## Activity Log / Notifications Convention
+`activityLog` in the store is the single notification/history source. New order, receipt uploaded, payment verified/rejected events are all pushed to activityLog. Admin bell and Dashboard timeline both read from it.
+
+## Closed-State Page Gating
+`quickControls.maintenanceMode` gates all non-admin routes in App.tsx Router function — shows MaintenancePage. `quickControls.onlineOrders` gates checkout. `quickControls.acceptReservations` gates the reservation form.
+
+## Keyless Map Embeds
+Google Maps URL stored in `config.googleMapsUrl`. The LocateUs page and Contact page render a plain `<a href={googleMapsUrl}>` link — no embed, no API key required.
+
+## Password Manager Support
+Login form (`AdminLogin.tsx`) has:
+- `<form autoComplete="on">`
+- `id="login-email" name="email"` on email input
+- `id="login-password" name="password"` on password input
+- `autoComplete="email"` / `autoComplete="current-password"` or `"new-password"` depending on mode

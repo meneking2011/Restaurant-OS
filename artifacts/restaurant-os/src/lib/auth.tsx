@@ -4,6 +4,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut,
   User,
@@ -61,6 +63,11 @@ function mapAuthError(code?: string): string {
       return "Password should be at least 6 characters.";
     case "auth/too-many-requests":
       return "Too many attempts. Please wait a moment and try again.";
+    case "auth/unauthorized-domain":
+    case "auth/operation-not-allowed":
+      return "Google sign-in is not enabled for this app. Please use email and password.";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection and try again.";
     default:
       return "Something went wrong. Please try again.";
   }
@@ -73,6 +80,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Handle the result of a Google redirect sign-in (fires when the page loads
+    // after a redirect-based OAuth flow).
+    getRedirectResult(auth).catch(() => {
+      // Silently ignore — onAuthStateChanged below picks up the signed-in user
+      // if the redirect succeeded. Any real error shows via the auth state change.
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setError(null);
       setLoading(true);
@@ -127,11 +141,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = async () => {
     setError(null);
+    const provider = new GoogleAuthProvider();
+    provider.addScope("email");
+    provider.addScope("profile");
+    provider.setCustomParameters({ prompt: "select_account" });
+
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      // Try popup first (works in standalone browser windows)
+      await signInWithPopup(auth, provider);
     } catch (err) {
       const code = (err as { code?: string })?.code;
-      if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
+
+      if (
+        code === "auth/popup-blocked" ||
+        code === "auth/popup-closed-by-user" ||
+        code === "auth/cancelled-popup-request"
+      ) {
+        // Popup was blocked (e.g. iframe / strict browser settings).
+        // Fall back to a full-page redirect — the result is picked up by
+        // getRedirectResult() when the page reloads after the OAuth dance.
+        await signInWithRedirect(auth, provider);
+        return; // page will redirect; no further action needed here
+      }
+
+      // Any other error: show it
+      if (code !== "auth/cancelled-popup-request") {
         setError(mapAuthError(code));
       }
       throw err;
