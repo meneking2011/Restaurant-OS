@@ -25,6 +25,14 @@ resolution post-login, without asking restaurant owners to touch Firebase — bu
 into a multi-domain/subdomain-routed SaaS (each tenant getting its own live public storefront)
 was out of scope for this pass.
 
+**Hosting deploy:** Site is live at https://restaurant-os-88262.web.app. Deploy uses
+`GOOGLE_APPLICATION_CREDENTIALS_JSON` Replit Secret (service account JSON for
+`firebase-adminsdk-fbsvc@restaurant-os-88262.iam.gserviceaccount.com`). Script at
+`scripts/deploy-firebase.sh` writes the JSON to a temp file, runs `PORT=3000 BASE_PATH=/ vite build`,
+then deploys. Must blank out `FIREBASE_TOKEN` env var (`FIREBASE_TOKEN=""`) to prevent the old
+deprecated token from taking precedence over the service account. firebase.json has `"site":
+"restaurant-os-88262"` explicitly set — without it Firebase throws "no site name" assertion error.
+
 **Known gap — Firestore security rules are NOT locked down by the agent.** The project starts in
 Firebase's default/test-mode rules (verified via REST: anonymous reads of `restaurants/default`
 succeeded with no auth). The agent has no Firebase CLI/service-account access to deploy rules
