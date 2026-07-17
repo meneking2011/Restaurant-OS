@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "DJ4fQXWSVuPYN2w6HLFRR"
+uri = "file://restaurant-os.zip"
+type = "unspecified"
+title = "RestaurantOS — Complete Source Code"
