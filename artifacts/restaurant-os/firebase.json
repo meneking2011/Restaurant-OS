@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "restaurant-os-88262",
     "public": "dist/public",
     "ignore": [
       "firebase.json",
