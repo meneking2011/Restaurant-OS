@@ -1,28 +1,27 @@
 #!/usr/bin/env bash
-# ─────────────────────────────────────────────────────────────────
-#  Deploy RestaurantOS to Firebase Hosting
-#  Requires: FIREBASE_TOKEN secret set in Replit Secrets
-# ─────────────────────────────────────────────────────────────────
-set -euo pipefail
+# Deploy restaurant-os to Firebase Hosting
+# Requires: GOOGLE_APPLICATION_CREDENTIALS_JSON secret (service account JSON)
+# Usage: bash scripts/deploy-firebase.sh
 
-PROJECT_ID="restaurant-os-88262"
-APP_DIR="$(cd "$(dirname "$0")/.." && pwd)/artifacts/restaurant-os"
+set -e
 
-echo "▶ Building RestaurantOS for production..."
-cd "$APP_DIR"
+SA_FILE=$(mktemp /tmp/firebase-sa-XXXXXX.json)
+trap 'rm -f "$SA_FILE"' EXIT
+
+if [ -z "$GOOGLE_APPLICATION_CREDENTIALS_JSON" ]; then
+  echo "ERROR: GOOGLE_APPLICATION_CREDENTIALS_JSON secret is not set." >&2
+  exit 1
+fi
+
+echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > "$SA_FILE"
+
+echo "==> Building for production…"
+cd "$(dirname "$0")/../artifacts/restaurant-os"
 PORT=3000 BASE_PATH=/ pnpm run build
 
-echo ""
-echo "▶ Deploying to Firebase Hosting (project: $PROJECT_ID)..."
-npx firebase-tools@latest deploy \
-  --only hosting \
-  --project "$PROJECT_ID" \
-  --token "$FIREBASE_TOKEN" \
-  --non-interactive
+echo "==> Deploying to Firebase Hosting…"
+FIREBASE_TOKEN="" GOOGLE_APPLICATION_CREDENTIALS="$SA_FILE" \
+  npx firebase-tools@latest deploy --only hosting \
+  --project restaurant-os-88262 --non-interactive
 
-echo ""
-echo "✅  Deployed!"
-echo "    Live at: https://${PROJECT_ID}.web.app"
-echo ""
-echo "    To connect restaurant-os.com as a custom domain:"
-echo "    Firebase Console → Hosting → Add custom domain"
+echo "==> Done! Live at https://restaurant-os-88262.web.app"
