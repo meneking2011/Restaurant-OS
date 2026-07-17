@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
+    "build:firebase": "PORT=3000 BASE_PATH=/ vite build --config vite.config.ts",
+    "deploy:firebase": "pnpm run build:firebase && npx firebase-tools@latest deploy --only hosting --project restaurant-os-88262 --token $FIREBASE_TOKEN --non-interactive",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
