@@ -264,4 +264,7 @@ export interface CustomPage {
   showInFooter: boolean;
   sections: CustomPageSection[];
   createdAt: string;
+  /** When true, visiting this page's slug redirects the user to externalUrl instead of showing content. */
+  externalUrlEnabled?: boolean;
+  externalUrl?: string;
 }

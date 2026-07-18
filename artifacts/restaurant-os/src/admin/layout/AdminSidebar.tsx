@@ -3,7 +3,7 @@ import {
   LayoutDashboard, UtensilsCrossed, ConciergeBell, Star,
   CalendarCheck, Settings, Flame, ExternalLink, ShoppingBag,
   Images, Building2, LogOut, Globe,
-  Navigation, FileText, Palette, Library, BarChart2,
+  Navigation, FileText, Palette, Library, BarChart2, FilePlus2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRestaurantStore } from "@/store/restaurantStore";
@@ -36,6 +36,7 @@ export function AdminSidebar({ onLinkClick }: AdminSidebarProps) {
   const config       = useRestaurantStore((s) => s.config);
   const orders       = useRestaurantStore((s) => s.orders);
   const reservations = useRestaurantStore((s) => s.reservations);
+  const customPages  = useRestaurantStore((s) => s.customPages);
   const { user, logout } = useAuth();
 
   const pendingOrders = orders.filter((o) => o.status === "new").length;
@@ -91,6 +92,28 @@ export function AdminSidebar({ onLinkClick }: AdminSidebarProps) {
         })}
       </nav>
 
+        {/* Custom pages sub-section */}
+        {customPages.length > 0 && (
+          <div className="mt-1 mb-1">
+            <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-widest text-foreground/30">Custom Pages</p>
+            {customPages.map((page) => {
+              const editHref = `/admin/pages/${page.id}`;
+              const isActive = location === editHref;
+              return (
+                <Link key={page.id} href={editHref} onClick={onLinkClick}>
+                  <span className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 ml-2 rounded-lg text-xs transition-colors cursor-pointer",
+                    isActive ? "bg-primary/15 text-primary font-medium" : "text-foreground/45 hover:text-foreground hover:bg-white/5"
+                  )}>
+                    <FilePlus2 className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{page.name}</span>
+                    {!page.visible && <span className="ml-auto text-[9px] text-foreground/30 shrink-0">hidden</span>}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       {/* Footer links */}
       <div className="px-2 pb-4 border-t border-white/10 pt-2 space-y-0.5 shrink-0">
         <a

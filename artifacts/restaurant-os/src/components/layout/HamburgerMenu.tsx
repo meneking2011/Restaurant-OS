@@ -24,8 +24,9 @@ const SOCIAL_ICON_MAP: Record<string, React.ElementType> = {
 export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
   const [location] = useLocation();
   const itemCount  = useCartStore((state) => state.getItemCount());
-  const config     = useRestaurantStore((s) => s.config);
-  const navLinks   = useRestaurantStore((s) => s.navLinks);
+  const config      = useRestaurantStore((s) => s.config);
+  const navLinks    = useRestaurantStore((s) => s.navLinks);
+  const customPages = useRestaurantStore((s) => s.customPages);
 
   // Lock body scroll when open
   useEffect(() => {
@@ -33,7 +34,20 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
     return () => { document.body.style.overflow = "unset"; };
   }, [isOpen]);
 
-  const visibleLinks = navLinks.filter((l) => l.visible);
+  // Merge store nav links + custom pages that opted into nav
+  const customNavLinks = customPages
+    .filter((p) => p.visible && p.showInNav && !p.externalUrlEnabled)
+    .map((p) => ({ id: p.id, label: p.name, href: p.slug, visible: true, openInNewTab: false }));
+
+  const customExternalLinks = customPages
+    .filter((p) => p.visible && p.showInNav && p.externalUrlEnabled && p.externalUrl)
+    .map((p) => ({ id: p.id, label: p.name, href: p.externalUrl!, visible: true, openInNewTab: true }));
+
+  const visibleLinks = [
+    ...navLinks.filter((l) => l.visible),
+    ...customNavLinks,
+    ...customExternalLinks,
+  ];
 
   // Resolve social links from store config.socials
   const socialLinks = config.socials.filter((s) => s.url && s.url.trim() !== "");

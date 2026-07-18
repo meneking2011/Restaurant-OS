@@ -1,11 +1,12 @@
 import { useState, useRef } from "react";
+import { useLocation } from "wouter";
 import { AdminLayout } from "../layout/AdminLayout";
 import { cn } from "@/lib/utils";
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { CustomPage, CustomPageSection } from "@/types/restaurant";
 import {
-  Plus, Save, Globe, Trash2, X, Check, Eye, EyeOff,
-  ChevronDown, ChevronUp, Upload, Image as ImageIcon
+  Plus, Globe, Trash2, X, Eye, EyeOff,
+  ChevronDown, ChevronUp, Upload, Pencil, ExternalLink,
 } from "lucide-react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 
@@ -171,11 +172,15 @@ function NewPageWizard({ onClose, onSave }: { onClose: () => void; onSave: (page
   const [step, setStep]         = useState<WizardStep>("name");
   const [pageName, setPageName] = useState("");
   const [slug, setSlug]         = useState("");
-  const [showInNav, setShowInNav]     = useState(false);
+  const [showInNav, setShowInNav]       = useState(false);
   const [showInFooter, setShowInFooter] = useState(false);
+  const [externalUrlEnabled, setExternalUrlEnabled] = useState(false);
+  const [externalUrl, setExternalUrl]               = useState("");
   const [sections, setSections] = useState<CustomPageSection[]>([
     { id: `sec-${Date.now()}`, type: "hero", heading: "", subheading: "", body: "", alignment: "center" },
   ]);
+
+  const hostname = typeof window !== "undefined" ? window.location.hostname : "yourdomain.com";
 
   const autoSlug = (name: string) =>
     name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -220,6 +225,8 @@ function NewPageWizard({ onClose, onSave }: { onClose: () => void; onSave: (page
       visible: true,
       showInNav,
       showInFooter,
+      externalUrlEnabled,
+      externalUrl: externalUrlEnabled ? externalUrl : "",
       sections,
     });
     onClose();
@@ -266,8 +273,8 @@ function NewPageWizard({ onClose, onSave }: { onClose: () => void; onSave: (page
               </div>
               <div>
                 <label className="text-xs text-foreground/50 mb-1 block">URL Slug</label>
-                <div className="flex items-center gap-0">
-                  <span className="bg-white/5 border border-white/10 border-r-0 rounded-l-lg px-3 py-2 text-sm text-foreground/40">yourdomain.com/</span>
+                <div className="flex items-center">
+                  <span className="bg-white/5 border border-white/10 border-r-0 rounded-l-lg px-3 py-2 text-sm text-foreground/40 whitespace-nowrap truncate max-w-[180px]">{hostname}/</span>
                   <input
                     className={inputCls + " rounded-l-none"}
                     value={slug}
@@ -276,7 +283,7 @@ function NewPageWizard({ onClose, onSave }: { onClose: () => void; onSave: (page
                   />
                 </div>
               </div>
-              <div className="flex gap-6">
+              <div className="flex flex-wrap gap-6">
                 <label className="flex items-center gap-2.5 cursor-pointer select-none">
                   <Toggle checked={showInNav} onChange={() => setShowInNav((v) => !v)} />
                   <span className="text-sm text-foreground/70">Show in Navigation</span>
@@ -285,6 +292,31 @@ function NewPageWizard({ onClose, onSave }: { onClose: () => void; onSave: (page
                   <Toggle checked={showInFooter} onChange={() => setShowInFooter((v) => !v)} />
                   <span className="text-sm text-foreground/70">Show in Footer</span>
                 </label>
+              </div>
+              {/* External redirect option */}
+              <div className="border-t border-white/10 pt-4 space-y-3">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <Toggle checked={externalUrlEnabled} onChange={() => setExternalUrlEnabled((v) => !v)} />
+                  <div>
+                    <span className="text-sm text-foreground/70">Redirect to an external website</span>
+                    <p className="text-[11px] text-foreground/40 mt-0.5">Visitors clicking this page will be sent to another website entirely.</p>
+                  </div>
+                </label>
+                {externalUrlEnabled && (
+                  <div>
+                    <label className="text-xs text-foreground/50 mb-1 block">External Website URL</label>
+                    <div className="flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4 text-foreground/30 shrink-0" />
+                      <input
+                        className={inputCls}
+                        value={externalUrl}
+                        onChange={(e) => setExternalUrl(e.target.value)}
+                        placeholder="https://example.com"
+                        type="url"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -341,7 +373,7 @@ function NewPageWizard({ onClose, onSave }: { onClose: () => void; onSave: (page
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-foreground/50">URL</span>
-                  <span className="text-foreground font-mono">/{slug || "..."}</span>
+                  <span className="text-foreground font-mono">{hostname}/{slug || "..."}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-foreground/50">Navigation</span>
@@ -351,10 +383,17 @@ function NewPageWizard({ onClose, onSave }: { onClose: () => void; onSave: (page
                   <span className="text-foreground/50">Footer</span>
                   <span className="text-foreground">{showInFooter ? "Yes" : "No"}</span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-foreground/50">Sections</span>
-                  <span className="text-foreground">{sections.length}</span>
-                </div>
+                {externalUrlEnabled ? (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-foreground/50">Redirect to</span>
+                    <span className="text-blue-400 font-mono truncate max-w-[200px]">{externalUrl || "—"}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-foreground/50">Sections</span>
+                    <span className="text-foreground">{sections.length}</span>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 {sections.map((s, i) => (
@@ -410,7 +449,8 @@ function NewPageWizard({ onClose, onSave }: { onClose: () => void; onSave: (page
 
 export default function AdminPages() {
   const { customPages, addCustomPage, updateCustomPage, deleteCustomPage } = useRestaurantStore();
-  const [showWizard, setShowWizard]   = useState(false);
+  const [, navigate] = useLocation();
+  const [showWizard, setShowWizard]     = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const systemPages = [
@@ -489,13 +529,17 @@ export default function AdminPages() {
         {customPages.length > 0 && (
           <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden divide-y divide-white/5">
             {customPages.map((page) => (
-              <div key={page.id} className="flex items-center gap-4 px-4 py-3 group">
+              <div key={page.id} className="flex items-center gap-4 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">{page.name}</p>
                   <p className="text-xs text-foreground/40 font-mono">{page.slug}</p>
-                  <p className="text-[10px] text-foreground/30 mt-0.5">{page.sections.length} section{page.sections.length !== 1 ? "s" : ""}</p>
+                  <p className="text-[10px] text-foreground/30 mt-0.5">
+                    {page.externalUrlEnabled
+                      ? <span className="text-blue-400/70">↗ redirects to external URL</span>
+                      : `${page.sections.length} section${page.sections.length !== 1 ? "s" : ""}`}
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5">
                     {page.showInNav    && <span className="text-[10px] text-blue-400  bg-blue-400/10  border border-blue-400/20  px-1.5 py-0.5 rounded">Nav</span>}
                     {page.showInFooter && <span className="text-[10px] text-purple-400 bg-purple-400/10 border border-purple-400/20 px-1.5 py-0.5 rounded">Footer</span>}
@@ -507,12 +551,26 @@ export default function AdminPages() {
                   >
                     {page.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                   </button>
-                  <a href={page.slug} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors">
+                  <button
+                    onClick={() => navigate(`/admin/pages/${page.id}`)}
+                    className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+                    title="Edit page"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <a
+                    href={page.externalUrlEnabled && page.externalUrl ? page.externalUrl : page.slug}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+                    title="View page"
+                  >
                     <Globe className="w-3.5 h-3.5" />
                   </a>
                   <button
                     onClick={() => setDeleteTarget(page.id)}
-                    className="p-1.5 rounded hover:bg-red-400/10 text-foreground/30 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-1.5 rounded hover:bg-red-400/10 text-red-400/60 hover:text-red-400 transition-colors"
+                    title="Delete page"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

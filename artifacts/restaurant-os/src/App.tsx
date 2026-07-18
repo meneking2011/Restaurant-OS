@@ -32,6 +32,7 @@ const AdminSettings = lazy(() => import("@/admin/pages/AdminSettings"));
 const AdminDesignTokens = lazy(() => import("@/admin/pages/AdminDesignTokens"));
 const AdminMediaLibrary = lazy(() => import("@/admin/pages/AdminMediaLibrary"));
 const AdminPages = lazy(() => import("@/admin/pages/AdminPages"));
+const AdminCustomPageEditor = lazy(() => import("@/admin/pages/AdminCustomPageEditor"));
 const AdminNavigation = lazy(() => import("@/admin/pages/AdminNavigation"));
 const AdminWebsite = lazy(() => import("@/admin/pages/AdminWebsite"));
 const AdminAnalytics = lazy(() => import("@/admin/pages/AdminAnalytics"));
@@ -121,12 +122,14 @@ function Router() {
         <Route path="/admin/design-tokens" component={() => <RequireAuth component={AdminDesignTokens} />} />
         <Route path="/admin/navigation" component={() => <RequireAuth component={AdminNavigation} />} />
         <Route path="/admin/pages" component={() => <RequireAuth component={AdminPages} />} />
+        <Route path="/admin/pages/:pageId" component={() => <RequireAuth component={AdminCustomPageEditor} />} />
         <Route path="/admin/services" component={() => <RequireAuth component={AdminServices} />} />
         <Route path="/admin/testimonials" component={() => <RequireAuth component={AdminTestimonials} />} />
         <Route path="/admin/analytics" component={() => <RequireAuth component={AdminAnalytics} />} />
         <Route path="/admin/settings" component={() => <RequireAuth component={AdminSettings} />} />
 
-        <Route path="/pages/:slug">
+        {/* Dynamic catch-all: checks custom pages before showing 404 */}
+        <Route path="/:slug">
           {(params) => <CustomPageView slug={params.slug ?? ""} />}
         </Route>
 

@@ -4,11 +4,25 @@ import { useRestaurantStore } from "@/store/restaurantStore";
 import { sectionBackgroundStyle, hasSectionOverlay } from "@/utils/sectionMedia";
 
 export function Footer() {
-  const config   = useRestaurantStore((s) => s.config);
-  const navLinks = useRestaurantStore((s) => s.navLinks);
-  const media    = useRestaurantStore((s) => s.sectionMedia.footer);
+  const config      = useRestaurantStore((s) => s.config);
+  const navLinks    = useRestaurantStore((s) => s.navLinks);
+  const customPages = useRestaurantStore((s) => s.customPages);
+  const media       = useRestaurantStore((s) => s.sectionMedia.footer);
 
-  const visibleLinks = navLinks.filter((l) => l.visible);
+  // Merge store footer links + custom pages that opted into footer
+  const customFooterLinks = customPages
+    .filter((p) => p.visible && p.showInFooter && !p.externalUrlEnabled)
+    .map((p) => ({ id: p.id, label: p.name, href: p.slug, visible: true, openInNewTab: false }));
+
+  const customExternalFooterLinks = customPages
+    .filter((p) => p.visible && p.showInFooter && p.externalUrlEnabled && p.externalUrl)
+    .map((p) => ({ id: p.id, label: p.name, href: p.externalUrl!, visible: true, openInNewTab: true }));
+
+  const visibleLinks = [
+    ...navLinks.filter((l) => l.visible),
+    ...customFooterLinks,
+    ...customExternalFooterLinks,
+  ];
 
   return (
     <footer

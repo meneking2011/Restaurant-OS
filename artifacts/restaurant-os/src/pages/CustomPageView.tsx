@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useRestaurantStore } from "@/store/restaurantStore";
 import { Layout } from "@/components/layout/Layout";
 import { SectionContainer } from "@/components/ui/SectionContainer";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { CustomPageSection } from "@/types/restaurant";
+import NotFound from "@/pages/not-found";
 
 function PageSection({ section, theme }: { section: CustomPageSection; theme: { fontHeading: string; fontBody: string } }) {
   const align =
@@ -110,23 +112,25 @@ interface CustomPageViewProps {
 export default function CustomPageView({ slug }: CustomPageViewProps) {
   const customPages = useRestaurantStore((s) => s.customPages);
   const siteTheme   = useRestaurantStore((s) => s.siteTheme);
-  const config      = useRestaurantStore((s) => s.config);
 
   const fullSlug = slug.startsWith("/") ? slug : `/${slug}`;
   const page = customPages.find((p) => p.slug === fullSlug);
 
+  // External redirect — send visitor to external URL immediately
+  useEffect(() => {
+    if (page?.externalUrlEnabled && page.externalUrl) {
+      window.location.href = page.externalUrl;
+    }
+  }, [page]);
+
+  // Page not found or hidden → show the standard 404
   if (!page || !page.visible) {
-    return (
-      <Layout>
-        <SectionContainer className="min-h-[60vh] flex flex-col items-center justify-center text-center">
-          <h1 className="font-serif text-4xl uppercase tracking-widest text-foreground mb-4">Page Not Found</h1>
-          <p className="text-muted-foreground mb-8">This page doesn't exist or is not visible.</p>
-          <Button asChild variant="outline" className="rounded-none tracking-widest uppercase">
-            <Link href="/">Return Home</Link>
-          </Button>
-        </SectionContainer>
-      </Layout>
-    );
+    return <NotFound />;
+  }
+
+  // External redirect in progress — show nothing while the browser navigates away
+  if (page.externalUrlEnabled && page.externalUrl) {
+    return null;
   }
 
   return (
